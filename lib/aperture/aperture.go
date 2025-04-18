@@ -27,16 +27,16 @@ type Route[T Input] struct {
 }
 
 func NewRoute[I Input](route Route[I]) {
-	http.HandleFunc(route.Path, invoke(route.Handler))
+	http.HandleFunc(route.Path, invoke(route.Handler, true))
 	newDoc(route)
 }
 
 func Run(port int, token *string) error {
-	http.HandleFunc("/__doc__", invoke(docHandler(token)))
+	http.HandleFunc("/__doc__", invoke(docHandler(token), false))
 	return http.ListenAndServe(":"+strconv.Itoa(port), nil)
 }
 
-func invoke[I Input](method func(I) (any, error)) func(w http.ResponseWriter, r *http.Request) {
+func invoke[I Input](method func(I) (any, error), wrap bool) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var props I
 
@@ -52,6 +52,12 @@ func invoke[I Input](method func(I) (any, error)) func(w http.ResponseWriter, r 
 		var ResponceErr *Error
 		if err != nil {
 			ResponceErr = &Error{Message: err.Error(), Code: 400}
+		}
+
+		if !wrap {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(data)
+			return
 		}
 
 		result := Responce{

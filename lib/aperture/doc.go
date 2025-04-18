@@ -2,6 +2,7 @@ package aperture
 
 import (
 	"errors"
+	"strings"
 )
 
 type TestData struct {
@@ -40,23 +41,47 @@ func newDoc[T Input](route Route[T]) {
 }
 
 type DocOutput struct {
-	Path string   `json:"path"`
-	Data TestData `json:"data"`
+	Method     string   `json:"method"`
+	Url        string   `json:"url"`
+	Alias      string   `json:"alias"`
+	Input      any      `json:"inputType"`
+	Output     any      `json:"outputType"`
+	Pathprops  []string `json:"pathProps"`
+	Exceptions []string `json:"exceptions"`
+}
+
+type DocResult struct {
+	Schema  any `json:"schema"`
+	Version int `json:"version"`
 }
 
 func docHandler(token *string) func(input DocInput) (any, error) {
 	return func(input DocInput) (any, error) {
+
 		if token != nil && input.Token != *token {
-			return nil, errors.New("Invalid token")
+			return nil, errors.New("invalid token")
 		}
 
-		result := []DocOutput{}
+		schema := []DocOutput{}
 
 		for _, test := range routes {
-			result = append(result, DocOutput{
-				Path: test.Path,
-				Data: test.Test(),
+			data := test.Test()
+			alias := strings.ReplaceAll(test.Path, "/", "")
+
+			schema = append(schema, DocOutput{
+				Url:        test.Path,
+				Method:     "post",
+				Alias:      alias,
+				Input:      map[string]any{alias + "__TYPE__": data.Inputs},
+				Output:     map[string]any{alias + "__TYPE__": data.Outputs},
+				Pathprops:  []string{},
+				Exceptions: []string{},
 			})
+		}
+
+		result := DocResult{
+			Schema:  schema,
+			Version: 2,
 		}
 
 		return result, nil
