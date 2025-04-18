@@ -18,13 +18,13 @@ func Run() {
 }
 
 func commands() (app *string, routes *string, output *string) {
-	cmd := flag.NewFlagSet("generate", flag.ExitOnError)
+	generate := flag.NewFlagSet("generate", flag.ExitOnError)
 
-	app = cmd.String("module", "app", "Название модуля (go.mod module)")
-	routes = cmd.String("routes", "api/routes", "Папка с маршрутами")
-	output = cmd.String("output", "api", "Папка для сохранения")
+	app = generate.String("module", "app", "Название модуля (go.mod module)")
+	routes = generate.String("routes", "api/routes", "Папка с маршрутами")
+	output = generate.String("output", "api", "Папка для сохранения")
 
-	cmd.Parse(os.Args[1:])
+	generate.Parse(os.Args[1:])
 
 	return
 }

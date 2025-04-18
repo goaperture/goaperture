@@ -23,7 +23,7 @@ func Generate(app string, routes string, _package string) {
 
 	f := jen.NewFile(_package)
 
-	f.ImportAlias("app/lib/aperture", "api")
+	f.ImportAlias("github.com/goaperture/goaperture/lib/aperture", "api")
 
 	for _, route := range list {
 		path := app + "/" + route.Import
@@ -36,8 +36,8 @@ func Generate(app string, routes string, _package string) {
 		path := app + "/" + route.Import
 		cutUrl := route.Url[len(routes):]
 
-		serveBody = append(serveBody, jen.Qual("app/lib/aperture", "NewRoute").Call(
-			jen.Qual("app/lib/aperture", "Route").Index(jen.Qual(path, route.Type)).Values(jen.Dict{
+		serveBody = append(serveBody, jen.Qual("github.com/goaperture/goaperture/lib/aperture", "NewRoute").Call(
+			jen.Qual("github.com/goaperture/goaperture/lib/aperture", "Route").Index(jen.Qual(path, route.Type)).Values(jen.Dict{
 				jen.Id("Path"):    jen.Lit(cutUrl),
 				jen.Id("Handler"): jen.Qual(path, route.Route),
 				jen.Id("Test"):    jen.Qual(path, route.Test),
@@ -46,7 +46,7 @@ func Generate(app string, routes string, _package string) {
 	}
 
 	serveBody = append(serveBody, jen.Return(
-		jen.Qual("app/lib/aperture", "Run").Call(
+		jen.Qual("github.com/goaperture/goaperture/lib/aperture", "Run").Call(
 			jen.Id("port"),
 			jen.Id("token"),
 		),
