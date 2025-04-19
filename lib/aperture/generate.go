@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"unicode"
 
 	"github.com/dave/jennifer/jen"
 )
@@ -90,7 +91,7 @@ func getRoutesFrom(path string, routes *[]FileRoute) {
 		routeMethod := strings.ToUpper(name[:1]) + name[1:]
 		routeTest := routeMethod + "Test"
 		routeInputType := routeMethod + "Input"
-		routeUrl := strings.ToLower(path + "/" + name)
+		routeUrl := getPrettyPath(path + "/" + name)
 
 		*routes = append(*routes, FileRoute{
 			Import:  path,
@@ -101,4 +102,26 @@ func getRoutesFrom(path string, routes *[]FileRoute) {
 			Url:     routeUrl,
 		})
 	}
+}
+
+func getPrettyPath(path string) string {
+	var builder strings.Builder
+	pt := false
+
+	for _, ch := range path {
+		if unicode.IsUpper(ch) {
+			if !pt {
+				builder.WriteRune('-')
+			}
+			builder.WriteRune(unicode.ToLower(ch))
+
+			continue
+		}
+
+		pt = ch == '/'
+
+		builder.WriteRune(ch)
+	}
+
+	return builder.String()
 }

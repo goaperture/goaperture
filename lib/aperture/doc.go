@@ -66,7 +66,7 @@ func docHandler(token *string) func(input DocInput) (any, error) {
 
 		for _, test := range routes {
 			data := test.Test()
-			alias := strings.ReplaceAll(test.Path, "/", "")
+			alias := getAlias(test.Path)
 
 			schema = append(schema, DocOutput{
 				Url:        test.Path,
@@ -86,4 +86,26 @@ func docHandler(token *string) func(input DocInput) (any, error) {
 
 		return result, nil
 	}
+}
+
+func getAlias(path string) string {
+	alias := ""
+	nextUp := false
+
+	for index, char := range strings.TrimPrefix(path, "/") {
+		if index == 0 || nextUp {
+			alias += strings.ToUpper(string(char))
+			nextUp = false
+			continue
+		}
+		if char == '/' || char == '-' {
+			nextUp = true
+			continue
+		}
+
+		nextUp = false
+		alias += string(char)
+	}
+
+	return alias
 }
