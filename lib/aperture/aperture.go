@@ -26,14 +26,30 @@ type Route[T Input] struct {
 	Test    func(func(T))
 }
 
-func NewRoute[I Input](route Route[I]) {
-	http.HandleFunc(route.Path, invoke(route.Handler, true))
+type Aperture struct {
+	Mux        *http.ServeMux
+	Middleware func(next http.Handler) http.Handler
+}
+
+func NewServer() *Aperture {
+	return &Aperture{
+		Mux: http.NewServeMux(),
+		Middleware: func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				next.ServeHTTP(w, r)
+			})
+		},
+	}
+}
+
+func NewRoute[I Input](api *Aperture, route Route[I]) {
+	api.Mux.HandleFunc(route.Path, invoke(route.Handler, true))
 	newDoc(route)
 }
 
-func Run(port int, token *string) error {
-	http.HandleFunc("/__doc__", invoke(docHandler(token), false))
-	return http.ListenAndServe(":"+strconv.Itoa(port), nil)
+func (api *Aperture) Run(port int, token *string) error {
+	api.Mux.HandleFunc("/__doc__", invoke(docHandler(token), false))
+	return http.ListenAndServe(":"+strconv.Itoa(port), api.Middleware(api.Mux))
 }
 
 func invoke[I Input](method func(I) (any, error), wrap bool) func(w http.ResponseWriter, r *http.Request) {

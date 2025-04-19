@@ -33,11 +33,16 @@ func Generate(app string, routes string, _package string) {
 
 	serveBody := []jen.Code{}
 
+	// serveBody = append(serveBody,
+	// 	jen.Id("server").Op(":=").Qual("github.com/goaperture/goaperture/lib/aperture", "NewServer").Call(),
+	// )
+
 	for _, route := range list {
 		path := app + "/" + route.Import
 		cutUrl := route.Url[len(routes):]
 
 		serveBody = append(serveBody, jen.Qual("github.com/goaperture/goaperture/lib/aperture", "NewRoute").Call(
+			jen.Op("&").Id("server").Dot("aperture"),
 			jen.Qual("github.com/goaperture/goaperture/lib/aperture", "Route").Index(jen.Qual(path, route.Type)).Values(jen.Dict{
 				jen.Id("Path"):    jen.Lit(cutUrl),
 				jen.Id("Handler"): jen.Qual(path, route.Route),
@@ -47,16 +52,50 @@ func Generate(app string, routes string, _package string) {
 	}
 
 	serveBody = append(serveBody, jen.Return(
-		jen.Qual("github.com/goaperture/goaperture/lib/aperture", "Run").Call(
+		jen.Id("server").Dot("aperture").Dot("Run").Call(
 			jen.Id("port"),
 			jen.Id("token"),
 		),
 	))
 
-	f.Func().Id("Serve").Params(
+	f.Func().Params(jen.Id("server").Op("*").Id("Server")).
+		Id("Run").Params(
 		jen.Id("port").Int(),
 		jen.Id("token").Op("*").String(),
 	).Error().Block(serveBody...)
+
+	// ---
+
+	f.Type().Id("Server").Struct(
+		jen.Id("aperture").Qual("github.com/goaperture/goaperture/lib/aperture", "Aperture"),
+	)
+
+	f.Func().Id("NewServer").Params().Op("*").Id("Server").Block(
+		jen.Return(jen.Op("&").Id("Server").Values(jen.Dict{
+			jen.Id("aperture"): jen.Op("*").Qual("github.com/goaperture/goaperture/lib/aperture", "NewServer").Call(),
+		})),
+	)
+
+	f.Func().Params(jen.Id("server").Op("*").Id("Server")).
+		Id("Middleware").
+		Params(jen.Id("middleware").Func().Params(jen.Id("next").Qual("net/http", "Handler")).Params(jen.Qual("net/http", "Handler"))).
+		Block(
+			jen.Id("server").Dot("aperture").Dot("Middleware").Op("=").Id("middleware"),
+		)
+
+	f.Func().Id("Serve").Params(
+		jen.Id("port").Int(),
+		jen.Id("token").Op("*").String(),
+	).Block(
+		jen.If(
+			jen.Err().Op(":=").Id("NewServer").Call().Dot("Run").Call(jen.Id("port"), jen.Id("token")),
+			jen.Err().Op("!=").Nil(),
+		).Block(
+			jen.Id("panic").Call(jen.Err()),
+		),
+	)
+
+	// ----
 
 	if _, err := os.Stat(_package); os.IsNotExist(err) {
 		os.Mkdir(_package, 0777)
