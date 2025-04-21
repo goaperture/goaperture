@@ -2,6 +2,7 @@ package aperture
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 )
@@ -60,9 +61,12 @@ func invoke[I Input](method func(I) (any, error), wrap bool) func(w http.Respons
 		case http.MethodGet:
 			getParamsToStruct(r.URL.Query(), &props)
 		case http.MethodPost:
-			json.NewDecoder(r.Body).Decode(props)
+			json.NewDecoder(r.Body).Decode(&props)
+		default:
+			log.Println("Неизвестный метод")
 		}
 
+		log.Println(props)
 		data, err := method(props)
 
 		var ResponceErr *Error
