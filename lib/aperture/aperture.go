@@ -66,7 +66,6 @@ func invoke[I Input](method func(I) (any, error), wrap bool) func(w http.Respons
 			log.Println("Неизвестный метод")
 		}
 
-		log.Println(props)
 		data, err := method(props)
 
 		var ResponceErr *Error
