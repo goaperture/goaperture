@@ -1,6 +1,7 @@
-package aperture
+package generate
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -18,7 +19,7 @@ type FileRoute struct {
 	Url     string
 }
 
-func Generate(app string, routes string, _package string) {
+func Schema(app string, routes string, _package string) {
 	list := []FileRoute{}
 	getRoutesFrom(routes, &list)
 
@@ -98,10 +99,14 @@ func Generate(app string, routes string, _package string) {
 	// ----
 
 	if _, err := os.Stat(_package); os.IsNotExist(err) {
-		os.Mkdir(_package, 0777)
+		os.MkdirAll(_package, 0755)
 	}
 	if err := f.Save(_package + "/aperture.go"); err != nil {
 		panic(fmt.Sprintf("Error saving file: %v", err))
+	}
+
+	if _, err := os.Stat(_package + "/config/config.go"); errors.Is(err, os.ErrExist) {
+		Config(_package)
 	}
 }
 

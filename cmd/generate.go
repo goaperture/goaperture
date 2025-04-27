@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/goaperture/goaperture/lib/aperture"
+	"github.com/goaperture/goaperture/lib/generate"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +20,7 @@ var generateCmd = &cobra.Command{
 		routes, _ := cmd.Flags().GetString("routes")
 		output, _ := cmd.Flags().GetString("output")
 
-		aperture.Generate(app, routes, output)
+		generate.Schema(app, routes, output)
 	},
 }
 
