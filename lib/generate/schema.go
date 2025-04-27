@@ -26,6 +26,7 @@ func Schema(app string, routes string, _package string) {
 	f := jen.NewFile(_package)
 
 	f.ImportAlias("github.com/goaperture/goaperture/lib/aperture", "api")
+	f.ImportAlias(app+"/"+_package+"/config", "config")
 
 	for _, route := range list {
 		path := app + "/" + route.Import
@@ -44,7 +45,7 @@ func Schema(app string, routes string, _package string) {
 
 		serveBody = append(serveBody, jen.Qual("github.com/goaperture/goaperture/lib/aperture", "NewRoute").Call(
 			jen.Op("&").Id("server").Dot("aperture"),
-			jen.Qual("github.com/goaperture/goaperture/lib/aperture", "Route").Index(jen.Qual(path, route.Type)).Values(jen.Dict{
+			jen.Qual("github.com/goaperture/goaperture/lib/aperture", "Route").Types(jen.Qual(path, route.Type), jen.Qual(app+"/"+_package+"/config", "Client")).Values(jen.Dict{
 				jen.Id("Path"):    jen.Lit(cutUrl),
 				jen.Id("Handler"): jen.Qual(path, route.Route),
 				jen.Id("Test"):    jen.Qual(path, route.Test),
@@ -105,7 +106,10 @@ func Schema(app string, routes string, _package string) {
 		panic(fmt.Sprintf("Error saving file: %v", err))
 	}
 
-	if _, err := os.Stat(_package + "/config/config.go"); errors.Is(err, os.ErrExist) {
+	fmt.Println(">", _package+"/config/config.go")
+	_, err := os.Stat(_package + "/config/config.go")
+	if errors.Is(err, os.ErrNotExist) {
+		fmt.Println(">>> generate", _package)
 		Config(_package)
 	}
 }

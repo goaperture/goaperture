@@ -8,7 +8,7 @@ import (
 )
 
 func Config(_package string) {
-	f := jen.NewFile(_package)
+	f := jen.NewFile("config")
 
 	f.ImportAlias("github.com/goaperture/goaperture/lib/config", "client")
 
@@ -17,7 +17,7 @@ func Config(_package string) {
 		jen.Id("Name").String().Tag(map[string]string{"json": "name"}),
 		jen.Id("Email").String().Tag(map[string]string{"json": "email"}),
 		jen.Id("Avatar").String().Tag(map[string]string{"json": "avatar"}),
-		jen.Id("Permission").Qual("github.com/goaperture/goaperture/lib/client", "Permissions").Tag(map[string]string{"json": "permissions"}),
+		jen.Id("Permissions").Qual("github.com/goaperture/goaperture/lib/client", "Permissions").Tag(map[string]string{"json": "permissions"}),
 	)
 
 	if err := os.MkdirAll(_package+"/config", 0755); err != nil {
