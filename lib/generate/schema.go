@@ -45,7 +45,7 @@ func Schema(app string, routes string, _package string) {
 
 		serveBody = append(serveBody, jen.Qual("github.com/goaperture/goaperture/lib/aperture", "NewRoute").Call(
 			jen.Op("&").Id("server").Dot("aperture"),
-			jen.Qual("github.com/goaperture/goaperture/lib/aperture", "Route").Types(jen.Qual(path, route.Type), jen.Qual(app+"/"+_package+"/config", "Client")).Values(jen.Dict{
+			jen.Qual("github.com/goaperture/goaperture/lib/aperture", "Route").Types(jen.Qual(path, route.Type), jen.Qual(app+"/"+_package+"/config", "Payload")).Values(jen.Dict{
 				jen.Id("Path"):    jen.Lit(cutUrl),
 				jen.Id("Handler"): jen.Qual(path, route.Route),
 				jen.Id("Test"):    jen.Qual(path, route.Test),
