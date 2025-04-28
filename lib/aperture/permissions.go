@@ -1,4 +1,4 @@
-package client
+package aperture
 
 type Permissions []string
 

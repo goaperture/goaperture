@@ -21,13 +21,9 @@ type Input interface {
 	any
 }
 
-type client interface {
-	any
-}
-
-type Route[T Input, C client] struct {
+type Route[T Input, P Payload] struct {
 	Path    string
-	Handler func(T, *C) (any, error)
+	Handler func(T, Client[P]) (any, error)
 	Test    func(func(T))
 }
 
@@ -47,7 +43,7 @@ func NewServer() *Aperture {
 	}
 }
 
-func NewRoute[I Input, C client](api *Aperture, route Route[I, C]) {
+func NewRoute[I Input, P Payload](api *Aperture, route Route[I, P]) {
 	api.Mux.HandleFunc(route.Path, invoke(route.Handler, true))
 	newDoc(route)
 }
@@ -57,7 +53,7 @@ func (api *Aperture) Run(port int, token *string) error {
 	return http.ListenAndServe(":"+strconv.Itoa(port), api.Middleware(api.Mux))
 }
 
-func invoke[I Input, C client](method func(I, *C) (any, error), wrap bool) func(w http.ResponseWriter, r *http.Request) {
+func invoke[I Input, P Payload](method func(I, Client[P]) (any, error), wrap bool) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var props I
 
@@ -70,9 +66,7 @@ func invoke[I Input, C client](method func(I, *C) (any, error), wrap bool) func(
 			log.Println("Неизвестный метод")
 		}
 
-		var client C
-
-		data, err := method(props, &client)
+		data, err := method(props, NewClient[P](r, &w, "123455"))
 
 		var ResponceErr *Error
 		if err != nil {

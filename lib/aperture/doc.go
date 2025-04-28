@@ -21,7 +21,7 @@ type DocInput struct {
 
 var routes = []TestItem{}
 
-func newDoc[T Input, C client](route Route[T, C]) {
+func newDoc[T Input, P Payload](route Route[T, P]) {
 	routes = append(routes, TestItem{
 		Path: route.Path,
 		Test: func() TestData {
@@ -29,7 +29,7 @@ func newDoc[T Input, C client](route Route[T, C]) {
 
 			route.Test(func(input T) {
 				data.Inputs = append(data.Inputs, input)
-				output, err := route.Handler(input, nil)
+				output, err := route.Handler(input, NewClient[P](nil, nil))
 				if err == nil {
 					data.Outputs = append(data.Outputs, output)
 				}
@@ -55,8 +55,8 @@ type DocResult struct {
 	Version int `json:"version"`
 }
 
-func docHandler(token *string) func(input DocInput, client *client) (any, error) {
-	return func(input DocInput, client *client) (any, error) {
+func docHandler(token *string) func(input DocInput, client Client[Payload]) (any, error) {
+	return func(input DocInput, client Client[Payload]) (any, error) {
 
 		if token != nil && input.Token != *token {
 			return nil, errors.New("invalid token")
