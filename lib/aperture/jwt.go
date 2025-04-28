@@ -25,7 +25,7 @@ func NewAccessToken(client Payload, secret string) (string, error) {
 	return token.SignedString(secret)
 }
 
-func NewRefreshToken(clientId uint) (string, error) {
+func NewRefreshToken(clientId string, secret string) (string, error) {
 	return "123", nil
 }
 
@@ -65,7 +65,7 @@ func DecodeAccessToken[P Payload](tokenString string, secret string) (P, error) 
 	return payload, nil
 }
 
-func DecodeRefreshToken(token string) (clientId uint, err error) {
+func DecodeRefreshToken(token string) (clientId string, err error) {
 
 	return
 }

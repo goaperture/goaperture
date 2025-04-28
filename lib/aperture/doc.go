@@ -29,7 +29,7 @@ func newDoc[T Input, P Payload](route Route[T, P]) {
 
 			route.Test(func(input T) {
 				data.Inputs = append(data.Inputs, input)
-				output, err := route.Handler(input, NewClient[P](nil, nil))
+				output, err := route.Handler(input, NewClient[P](nil, nil, "secret_key"))
 				if err == nil {
 					data.Outputs = append(data.Outputs, output)
 				}
