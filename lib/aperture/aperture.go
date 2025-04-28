@@ -2,6 +2,7 @@ package aperture
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -65,6 +66,15 @@ func invoke[I Input, P Payload](method func(I, Client[P]) (any, error), wrap boo
 		default:
 			log.Println("Неизвестный метод")
 		}
+
+		defer func() {
+			if r := recover(); r != nil {
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(Responce{
+					Error: &Error{Message: fmt.Sprint(r), Code: 401},
+				})
+			}
+		}()
 
 		data, err := method(props, NewClient[P](r, &w, "123455"))
 
