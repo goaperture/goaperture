@@ -10,15 +10,17 @@ import (
 func Config(_package string) {
 	f := jen.NewFile("config")
 
-	f.ImportAlias("github.com/goaperture/goaperture/lib/config", "client")
+	f.ImportAlias("github.com/goaperture/goaperture/lib/aperture", "aperture")
 
-	f.Type().Id("Client").Struct(
-		jen.Id("Id").Uint().Tag(map[string]string{"json": "id"}),
+	f.Type().Id("Payload").Struct(
+		jen.Id("Id").String().Tag(map[string]string{"json": "id"}),
 		jen.Id("Name").String().Tag(map[string]string{"json": "name"}),
 		jen.Id("Email").String().Tag(map[string]string{"json": "email"}),
 		jen.Id("Avatar").String().Tag(map[string]string{"json": "avatar"}),
-		jen.Id("Permissions").Qual("github.com/goaperture/goaperture/lib/client", "Permissions").Tag(map[string]string{"json": "permissions"}),
+		jen.Id("Permissions").Qual("github.com/goaperture/goaperture/lib/aperture", "Permissions").Tag(map[string]string{"json": "permissions"}),
 	)
+
+	f.Type().Id("Client").Op("=").Qual("github.com/goaperture/goaperture/lib/aperture", "Client").Types(jen.Id("Payload"))
 
 	if err := os.MkdirAll(_package+"/config", 0755); err != nil {
 		panic(err)
