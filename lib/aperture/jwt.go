@@ -33,11 +33,11 @@ func NewAccessToken(client Payload, secret string) (string, error) {
 	return token.SignedString(getSecretKey(secret))
 }
 
-func NewRefreshToken(clientId string, secret string) (string, error) {
+func NewRefreshToken(clientId string, secret string, lifeTime time.Time) (string, error) {
 	claims := CustomRefreshClaims{
 		ClientId: clientId,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 10)),
+			ExpiresAt: jwt.NewNumericDate(lifeTime),
 		},
 	}
 
@@ -55,14 +55,15 @@ func DecodeAccessToken[P Payload](tokenString string, secret string) (*P, error)
 	}
 
 	if climps, ok := token.Claims.(*CustomClaims); ok && token.Valid {
-		data, err := json.Marshal(climps)
+		data, err := json.Marshal(climps.Client)
+
 		if err != nil {
 			return nil, err
 		}
 
 		var payload P
 		err = json.Unmarshal(data, &payload)
-		if err != nil {
+		if err == nil {
 			return &payload, err
 		}
 	}

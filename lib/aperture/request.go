@@ -2,6 +2,7 @@ package aperture
 
 import (
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -21,27 +22,32 @@ type Request struct {
 }
 
 func NewClient[P Payload](r *http.Request, w *http.ResponseWriter, secret string) Client[P] {
-	payload, _ := DecodeAccessToken[P]("2345", secret)
+	getPayload := func() *P {
+		auth := r.Header.Get("Authorization")
+		tokenString, _ := strings.CutPrefix(auth, "Bearer ")
+		if tokenString == "" {
+			return nil
+		}
 
-	client := Client[P]{
-		Payload: payload,
+		payload, _ := DecodeAccessToken[P](tokenString, secret)
+
+		return payload
+	}
+
+	return Client[P]{
+		Payload: getPayload(),
 		Request: Request{
 			Request:  r,
 			Responce: w,
 			secret:   secret,
 		},
 	}
-
-	return client
 }
 
 func (client Client[P]) NewJwt(payload P, refreshCookieKey string, refreshId string, path string, sequre bool) (string, error) {
-	refresh, err := NewRefreshToken(refreshId, client.secret)
-	if err != nil {
-		return "", err
-	}
+	expires := time.Now().Add(7 * 24 * time.Hour)
 
-	access, err := NewAccessToken(payload, client.secret)
+	refresh, err := NewRefreshToken(refreshId, client.secret, expires)
 	if err != nil {
 		return "", err
 	}
@@ -50,11 +56,16 @@ func (client Client[P]) NewJwt(payload P, refreshCookieKey string, refreshId str
 		Name:     refreshCookieKey,
 		Value:    refresh,
 		Path:     path,
-		Expires:  time.Now().Add(7 * 24 * time.Hour),
+		Expires:  expires,
 		HttpOnly: true,
 		Secure:   sequre,
 		SameSite: http.SameSiteStrictMode,
 	})
+
+	access, err := NewAccessToken(payload, client.secret)
+	if err != nil {
+		return "", err
+	}
 
 	return access, nil
 }

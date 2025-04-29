@@ -31,6 +31,7 @@ type Route[T Input, P Payload] struct {
 type Aperture struct {
 	Mux        *http.ServeMux
 	Middleware func(next http.Handler) http.Handler
+	GetSecret  func() string
 }
 
 func NewServer() *Aperture {
@@ -41,20 +42,21 @@ func NewServer() *Aperture {
 				next.ServeHTTP(w, r)
 			})
 		},
+		GetSecret: func() string { return "OP3$1$$VF555EJX6GTOBDCP5HPA.ZA7A@CN29k.Kj" },
 	}
 }
 
 func NewRoute[I Input, P Payload](api *Aperture, route Route[I, P]) {
-	api.Mux.HandleFunc(route.Path, invoke(route.Handler, true))
+	api.Mux.HandleFunc(route.Path, invoke(route.Handler, true, api.GetSecret()))
 	newDoc(route)
 }
 
 func (api *Aperture) Run(port int, token *string) error {
-	api.Mux.HandleFunc("/__doc__", invoke(docHandler(token), false))
+	api.Mux.HandleFunc("/__doc__", invoke(docHandler(token), false, api.GetSecret()))
 	return http.ListenAndServe(":"+strconv.Itoa(port), api.Middleware(api.Mux))
 }
 
-func invoke[I Input, P Payload](method func(I, Client[P]) (any, error), wrap bool) func(w http.ResponseWriter, r *http.Request) {
+func invoke[I Input, P Payload](method func(I, Client[P]) (any, error), wrap bool, secret string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var props I
 
@@ -76,7 +78,7 @@ func invoke[I Input, P Payload](method func(I, Client[P]) (any, error), wrap boo
 			}
 		}()
 
-		data, err := method(props, NewClient[P](r, &w, "123455"))
+		data, err := method(props, NewClient[P](r, &w, secret))
 
 		var ResponceErr *Error
 		if err != nil {
