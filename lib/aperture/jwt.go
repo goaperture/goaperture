@@ -2,7 +2,6 @@ package aperture
 
 import (
 	"encoding/json"
-	"errors"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -13,6 +12,15 @@ type CustomClaims struct {
 	jwt.RegisteredClaims
 }
 
+type CustomRefreshClaims struct {
+	ClientId string `json:"client-id"`
+	jwt.RegisteredClaims
+}
+
+func getSecretKey(secret string) []byte {
+	return []byte(secret)
+}
+
 func NewAccessToken(client Payload, secret string) (string, error) {
 	claims := CustomClaims{
 		Client: client,
@@ -21,51 +29,55 @@ func NewAccessToken(client Payload, secret string) (string, error) {
 		},
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
-	return token.SignedString(secret)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(getSecretKey(secret))
 }
 
 func NewRefreshToken(clientId string, secret string) (string, error) {
-	return "123", nil
+	claims := CustomRefreshClaims{
+		ClientId: clientId,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 10)),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(getSecretKey(secret))
 }
 
-func DecodeAccessToken[P Payload](tokenString string, secret string) (P, error) {
-	var payload P
-
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("invalid signing method")
-		}
-		return []byte(secret), nil
+func DecodeAccessToken[P Payload](tokenString string, secret string) (*P, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(t *jwt.Token) (interface{}, error) {
+		return getSecretKey(secret), nil
 	})
 
 	if err != nil {
-		return payload, err
+		return nil, err
 	}
 
-	if !token.Valid {
-		return payload, errors.New("invalid token")
+	if climps, ok := token.Claims.(*CustomClaims); ok && token.Valid {
+		data, err := json.Marshal(climps)
+		if err != nil {
+			return nil, err
+		}
+
+		var payload P
+		err = json.Unmarshal(data, &payload)
+		if err != nil {
+			return &payload, err
+		}
 	}
 
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return payload, errors.New("invalid claims type")
-	}
-
-	data, err := json.Marshal(claims)
-	if err != nil {
-		return payload, err
-	}
-
-	err = json.Unmarshal(data, &payload)
-	if err != nil {
-		return payload, err
-	}
-
-	return payload, nil
+	return nil, err
 }
 
-func DecodeRefreshToken(token string) (clientId string, err error) {
+func DecodeRefreshToken(tokenString string, secret string) (clientId string, err error) {
+	token, err := jwt.ParseWithClaims(tokenString, &CustomRefreshClaims{}, func(t *jwt.Token) (interface{}, error) {
+		return getSecretKey(secret), nil
+	})
+
+	if climps, ok := token.Claims.(*CustomRefreshClaims); ok && token.Valid {
+		clientId = climps.ClientId
+	}
 
 	return
 }

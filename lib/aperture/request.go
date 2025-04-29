@@ -21,10 +21,10 @@ type Request struct {
 }
 
 func NewClient[P Payload](r *http.Request, w *http.ResponseWriter, secret string) Client[P] {
-	payload, _ := DecodeAccessToken[P]("2345", "1111")
+	payload, _ := DecodeAccessToken[P]("2345", secret)
 
 	client := Client[P]{
-		Payload: &payload,
+		Payload: payload,
 		Request: Request{
 			Request:  r,
 			Responce: w,
@@ -65,19 +65,14 @@ func (client Client[P]) RefreshJwt(refreshCookieKey string, getPayload func(refr
 		return "", err
 	}
 
-	clientId, err := DecodeRefreshToken(refreshToken.Value)
+	clientId, err := DecodeRefreshToken(refreshToken.Value, client.secret)
 	if err != nil {
 		return "", err
 	}
 
 	payload := getPayload(clientId)
 
-	access, err := NewAccessToken(payload, client.secret)
-	if err != nil {
-		return "", err
-	}
-
-	return access, nil
+	return NewAccessToken(payload, client.secret)
 }
 
 func (client Client[P]) RemoveJwt(refreshCookieKey string, path string, sequre bool) {
