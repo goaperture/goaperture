@@ -3,7 +3,6 @@ package aperture
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 )
@@ -63,10 +62,8 @@ func invoke[I Input, P Payload](method func(I, Client[P]) (any, error), wrap boo
 		switch r.Method {
 		case http.MethodGet:
 			getParamsToStruct(r.URL.Query(), &props)
-		case http.MethodPost:
-			json.NewDecoder(r.Body).Decode(&props)
 		default:
-			log.Println("Неизвестный метод")
+			json.NewDecoder(r.Body).Decode(&props)
 		}
 
 		defer func() {
@@ -85,8 +82,9 @@ func invoke[I Input, P Payload](method func(I, Client[P]) (any, error), wrap boo
 			ResponceErr = &Error{Message: err.Error(), Code: 400}
 		}
 
+		w.Header().Set("Content-Type", "application/json")
+
 		if !wrap {
-			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(data)
 			return
 		}
@@ -96,7 +94,6 @@ func invoke[I Input, P Payload](method func(I, Client[P]) (any, error), wrap boo
 			Error: ResponceErr,
 		}
 
-		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(result)
 	}
 }
