@@ -1,38 +1,36 @@
-package aperture
+package doc
 
 import (
 	"errors"
 	"strings"
+
+	"github.com/goaperture/goaperture/lib/aperture/types"
 )
 
-type TestData struct {
-	Inputs  []any
-	Outputs []any
+type Doc[T types.Input, P types.Payload] struct {
+	Routes []types.TestItem[P]
 }
 
-type TestItem struct {
-	Path string
-	Test func() TestData
+func New[T types.Input, P types.Payload]() Doc[T, P] {
+	return Doc[T, P]{
+		Routes: []types.TestItem[P]{},
+	}
 }
 
-type DocInput struct {
-	Token string `json:"token"`
-}
-
-var routes = []TestItem{}
-
-func newDoc[T Input, P Payload](route Route[T, P]) {
-	routes = append(routes, TestItem{
+func (docs Doc[T, P]) Add(route types.Route[T, P]) {
+	docs.Routes = append(docs.Routes, types.TestItem[P]{
 		Path: route.Path,
-		Test: func() TestData {
-			data := TestData{}
+		Test: func(client types.Client[P]) types.TestData {
+			data := types.TestData{}
 
 			route.Test(func(input T) {
 				data.Inputs = append(data.Inputs, input)
-				output, err := route.Handler(input, NewClient[P](nil, nil, "secret_key"))
+
+				output, err := route.Handler(input, client)
 				if err == nil {
 					data.Outputs = append(data.Outputs, output)
 				}
+
 			})
 
 			return data
@@ -55,8 +53,8 @@ type DocResult struct {
 	Version int `json:"version"`
 }
 
-func docHandler(token *string) func(input DocInput, client Client[Payload]) (any, error) {
-	return func(input DocInput, client Client[Payload]) (any, error) {
+func docHandler(token *string, clients *[]types.Payload) func(input types.DocInput, client types.Client[types.Payload]) (any, error) {
+	return func(input types.DocInput, client types.Client[types.Payload]) (any, error) {
 
 		if token != nil && input.Token != *token {
 			return nil, errors.New("invalid token")

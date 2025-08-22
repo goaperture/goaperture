@@ -5,36 +5,13 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+
+	"github.com/goaperture/goaperture/lib/aperture/doc"
+	"github.com/goaperture/goaperture/lib/aperture/types"
 )
 
-type Error struct {
-	Message string `json:"message"`
-	Code    int    `json:"code"`
-}
-
-type Responce struct {
-	Data  any    `json:"data"`
-	Error *Error `json:"error,omitempty"`
-}
-
-type Input interface {
-	any
-}
-
-type Route[T Input, P Payload] struct {
-	Path    string
-	Handler func(T, Client[P]) (any, error)
-	Test    func(func(T))
-}
-
-type Aperture struct {
-	Mux        *http.ServeMux
-	Middleware func(next http.Handler) http.Handler
-	GetSecret  func() string
-}
-
-func NewServer() *Aperture {
-	return &Aperture{
+func NewServer() *types.Aperture {
+	return &types.Aperture{
 		Mux: http.NewServeMux(),
 		Middleware: func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -45,17 +22,21 @@ func NewServer() *Aperture {
 	}
 }
 
-func NewRoute[I Input, P Payload](api *Aperture, route Route[I, P]) {
-	api.Mux.HandleFunc(route.Path, invoke(route.Handler, true, api.GetSecret()))
-	newDoc(route)
+func New[I types.Input, P types.Payload]() func(api *types.Aperture, route types.Route[I, P]) {
+	var x = doc.New[I, P]()
+
+	return func(api *types.Aperture, route types.Route[I, P]) {
+		api.Mux.HandleFunc(route.Path, invoke(route.Handler, true, api.GetSecret()))
+		x.Add(route)
+	}
 }
 
-func (api *Aperture) Run(port int, token *string) error {
-	api.Mux.HandleFunc("/__doc__", invoke(docHandler(token), false, api.GetSecret()))
+func (api *types.Aperture) Run(port int, token *string, clients *[]types.Payload) error {
+	api.Mux.HandleFunc("/__doc__", invoke(doc.docHandler(token, clients), false, api.GetSecret()))
 	return http.ListenAndServe(":"+strconv.Itoa(port), api.Middleware(api.Mux))
 }
 
-func invoke[I Input, P Payload](method func(I, Client[P]) (any, error), wrap bool, secret string) func(w http.ResponseWriter, r *http.Request) {
+func invoke[I types.Input, P types.Payload](method func(I, types.Client[P]) (any, error), wrap bool, secret string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var props I
 
@@ -69,17 +50,17 @@ func invoke[I Input, P Payload](method func(I, Client[P]) (any, error), wrap boo
 		defer func() {
 			if r := recover(); r != nil {
 				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(Responce{
-					Error: &Error{Message: fmt.Sprint(r), Code: 401},
+				json.NewEncoder(w).Encode(types.Responce{
+					Error: &types.Error{Message: fmt.Sprint(r), Code: 401},
 				})
 			}
 		}()
 
 		data, err := method(props, NewClient[P](r, &w, secret))
 
-		var ResponceErr *Error
+		var ResponceErr *types.Error
 		if err != nil {
-			ResponceErr = &Error{Message: err.Error(), Code: 400}
+			ResponceErr = &types.Error{Message: err.Error(), Code: 400}
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -89,7 +70,7 @@ func invoke[I Input, P Payload](method func(I, Client[P]) (any, error), wrap boo
 			return
 		}
 
-		result := Responce{
+		result := types.Responce{
 			Data:  data,
 			Error: ResponceErr,
 		}

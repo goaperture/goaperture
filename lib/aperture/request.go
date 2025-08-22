@@ -4,24 +4,16 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/goaperture/goaperture/lib/aperture/types"
 )
 
-type Payload interface {
-	any
-}
-
-type Client[P Payload] struct {
+type Client[P types.Payload] struct {
 	Payload *P
-	Request
+	types.Request
 }
 
-type Request struct {
-	Request  *http.Request
-	Responce *http.ResponseWriter
-	secret   string
-}
-
-func NewClient[P Payload](r *http.Request, w *http.ResponseWriter, secret string) Client[P] {
+func NewClient[P types.Payload](r *http.Request, w *http.ResponseWriter, secret string) Client[P] {
 	getPayload := func() *P {
 		auth := r.Header.Get("Authorization")
 		tokenString, _ := strings.CutPrefix(auth, "Bearer ")
@@ -36,7 +28,7 @@ func NewClient[P Payload](r *http.Request, w *http.ResponseWriter, secret string
 
 	return Client[P]{
 		Payload: getPayload(),
-		Request: Request{
+		Request: types.Request{
 			Request:  r,
 			Responce: w,
 			secret:   secret,
