@@ -13,6 +13,7 @@ type Payload interface {
 type Client[P Payload] struct {
 	Payload *P
 	Request
+	Dev bool
 }
 
 type Request struct {
@@ -21,8 +22,12 @@ type Request struct {
 	secret   string
 }
 
-func NewClient[P Payload](r *http.Request, w *http.ResponseWriter, secret string) Client[P] {
+func NewClient[P Payload](r *http.Request, w *http.ResponseWriter, secret string, dev bool) Client[P] {
 	getPayload := func() *P {
+		if r == nil {
+			return nil
+		}
+
 		auth := r.Header.Get("Authorization")
 		tokenString, _ := strings.CutPrefix(auth, "Bearer ")
 		if tokenString == "" {
@@ -41,6 +46,7 @@ func NewClient[P Payload](r *http.Request, w *http.ResponseWriter, secret string
 			Responce: w,
 			secret:   secret,
 		},
+		Dev: dev,
 	}
 }
 
