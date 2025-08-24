@@ -34,7 +34,7 @@ func newDoc[T Input, P Payload](route Route[T, P]) {
 					if r := recover(); r != nil {
 						data.Exceptions = append(
 							data.Exceptions,
-							fmt.Sprintf("паника: %v", r),
+							fmt.Sprintf("panic: %v", r),
 						)
 					}
 				}()
@@ -52,9 +52,10 @@ func newDoc[T Input, P Payload](route Route[T, P]) {
 }
 
 type DocOutput struct {
-	Method     string   `json:"method"`
 	Url        string   `json:"url"`
+	Version    string   `json:"version"`
 	Alias      string   `json:"alias"`
+	Method     string   `json:"method"`
 	Input      any      `json:"inputType"`
 	Output     any      `json:"outputType"`
 	Pathprops  []string `json:"pathProps"`
@@ -77,12 +78,13 @@ func docHandler[P Payload](token string, testClients []P) func(input DocInput, c
 
 		for _, test := range routes {
 			func() {
-				alias := getAlias(test.Path)
+				alias, version := getAlias(test.Path)
 
 				data := test.Test("sdkjflskdjflkjl")
 
 				schema = append(schema, DocOutput{
 					Url:        test.Path,
+					Version:    version,
 					Method:     "post",
 					Alias:      alias,
 					Input:      map[string]any{alias + "__TYPE__": data.Inputs},
@@ -103,11 +105,15 @@ func docHandler[P Payload](token string, testClients []P) func(input DocInput, c
 	}
 }
 
-func getAlias(path string) string {
+func getAlias(path string) (string, string) {
 	alias := ""
 	nextUp := false
 
-	for index, char := range strings.TrimPrefix(path, "/") {
+	parts := strings.Split(strings.TrimPrefix(path, "/"), "/")
+	version := parts[0]
+	url := strings.Join(parts[1:], "/")
+
+	for index, char := range url {
 		if index == 0 || nextUp {
 			alias += strings.ToUpper(string(char))
 			nextUp = false
@@ -122,5 +128,5 @@ func getAlias(path string) string {
 		alias += string(char)
 	}
 
-	return alias
+	return alias, version
 }

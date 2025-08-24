@@ -28,6 +28,8 @@ func Schema(app string, routes string, _package string) {
 	f.ImportAlias("github.com/goaperture/goaperture/lib/aperture", "api")
 	f.ImportAlias(app+"/"+_package+"/config", "config")
 
+	configPayloadType := jen.Qual(app+"/"+_package+"/config", "Payload")
+
 	for _, route := range list {
 		path := app + "/" + route.Import
 		f.ImportName(path, route.Package)
@@ -45,7 +47,7 @@ func Schema(app string, routes string, _package string) {
 
 		serveBody = append(serveBody, jen.Qual("github.com/goaperture/goaperture/lib/aperture", "NewRoute").Call(
 			jen.Op("&").Id("server").Dot("aperture"),
-			jen.Qual("github.com/goaperture/goaperture/lib/aperture", "Route").Types(jen.Qual(path, route.Type), jen.Qual(app+"/"+_package+"/config", "Payload")).Values(jen.Dict{
+			jen.Qual("github.com/goaperture/goaperture/lib/aperture", "Route").Types(jen.Qual(path, route.Type), configPayloadType).Values(jen.Dict{
 				jen.Id("Path"):    jen.Lit(cutUrl),
 				jen.Id("Handler"): jen.Qual(path, route.Route),
 				jen.Id("Test"):    jen.Qual(path, route.Test),
@@ -57,6 +59,7 @@ func Schema(app string, routes string, _package string) {
 		jen.Id("server").Dot("aperture").Dot("Run").Call(
 			jen.Id("port"),
 			jen.Id("token"),
+			jen.Id("config.TestClients"),
 		),
 	))
 
@@ -69,12 +72,14 @@ func Schema(app string, routes string, _package string) {
 	// ---
 
 	f.Type().Id("Server").Struct(
-		jen.Id("aperture").Qual("github.com/goaperture/goaperture/lib/aperture", "Aperture"),
+		jen.Id("aperture").Qual("github.com/goaperture/goaperture/lib/aperture", "Aperture").Types(configPayloadType),
 	)
 
-	f.Func().Id("NewServer").Params().Op("*").Id("Server").Block(
+	f.Func().Id("NewServer").Params(
+		jen.Id("token").Op("*").String(),
+	).Op("*").Id("Server").Block(
 		jen.Return(jen.Op("&").Id("Server").Values(jen.Dict{
-			jen.Id("aperture"): jen.Op("*").Qual("github.com/goaperture/goaperture/lib/aperture", "NewServer").Call(),
+			jen.Id("aperture"): jen.Op("*").Qual("github.com/goaperture/goaperture/lib/aperture", "NewServer").Types(configPayloadType).Call(jen.Id("token")), /// TODO add
 		})),
 	)
 
@@ -90,7 +95,7 @@ func Schema(app string, routes string, _package string) {
 		jen.Id("token").Op("*").String(),
 	).Block(
 		jen.If(
-			jen.Err().Op(":=").Id("NewServer").Call().Dot("Run").Call(jen.Id("port"), jen.Id("token")),
+			jen.Err().Op(":=").Id("NewServer").Call(jen.Id("token")).Dot("Run").Call(jen.Id("port"), jen.Id("token")),
 			jen.Err().Op("!=").Nil(),
 		).Block(
 			jen.Id("panic").Call(jen.Err()),
