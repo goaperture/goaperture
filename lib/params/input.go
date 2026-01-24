@@ -1,12 +1,27 @@
-package aperture
+package params
 
 import (
+	"encoding/json"
+	"net/http"
 	"net/url"
 	"reflect"
 	"strconv"
 )
 
-func getParamsToStruct[I any](values url.Values, to *I) {
+func GetInput[I any](r *http.Request) I {
+	var input I
+
+	switch r.Method {
+	case http.MethodGet:
+		toStruct(r.URL.Query(), &input)
+	default:
+		json.NewDecoder(r.Body).Decode(&input)
+	}
+
+	return input
+}
+
+func toStruct[I any](values url.Values, to *I) {
 	ref := reflect.ValueOf(to).Elem()
 
 	for i := 0; i < ref.NumField(); i++ {

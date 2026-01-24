@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+
+	"github.com/goaperture/goaperture/lib/params"
 )
 
 type Error struct {
@@ -65,15 +67,6 @@ func (api *Aperture[P]) Run(port int, token *string, clients []P) error {
 
 func invoke[I Input, P Payload](method func(I, Client[P]) (any, error), wrap bool, secret string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var props I
-
-		switch r.Method {
-		case http.MethodGet:
-			getParamsToStruct(r.URL.Query(), &props)
-		default:
-			json.NewDecoder(r.Body).Decode(&props)
-		}
-
 		defer func() {
 			if r := recover(); r != nil {
 				w.Header().Set("Content-Type", "application/json")
@@ -83,6 +76,7 @@ func invoke[I Input, P Payload](method func(I, Client[P]) (any, error), wrap boo
 			}
 		}()
 
+		var props = params.GetInput[I](r)
 		data, err := method(props, NewClient[P](r, &w, secret, false))
 
 		var ResponceErr *Error
