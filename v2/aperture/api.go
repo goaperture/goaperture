@@ -3,8 +3,6 @@ package aperture
 import (
 	"fmt"
 	"net/http"
-
-	"github.com/goaperture/goaperture/v2/doc"
 )
 
 type Payload any
@@ -34,7 +32,7 @@ func (a *Api[P]) Run() {
 	}
 
 	if a.Secret.Token != "" {
-		server.HandleFunc("__doc__", doc.Handle(a))
+		server.HandleFunc(DOC_URL, docHandle(a))
 	}
 
 	http.ListenAndServe(fmt.Sprintf(":%d", a.Port), a.wrap(server))

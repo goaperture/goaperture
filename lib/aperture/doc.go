@@ -52,14 +52,15 @@ func newDoc[T Input, P Payload](route Route[T, P]) {
 }
 
 type DocOutput struct {
-	Url        string   `json:"url"`
-	Version    string   `json:"version"`
-	Alias      string   `json:"alias"`
-	Method     string   `json:"method"`
-	Input      any      `json:"inputType"`
-	Output     any      `json:"outputType"`
-	Pathprops  []string `json:"pathProps"`
-	Exceptions []string `json:"exceptions"`
+	Url         string   `json:"url"`
+	Version     string   `json:"version"`
+	Alias       string   `json:"alias"`
+	Method      string   `json:"method"`
+	Input       any      `json:"inputType"`
+	Output      any      `json:"outputType"`
+	Pathprops   []string `json:"pathProps"`
+	Exceptions  []string `json:"exceptions"`
+	Description string   `json:"description"`
 }
 
 type DocResult struct {

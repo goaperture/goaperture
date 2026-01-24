@@ -6,11 +6,13 @@ import (
 	"net/http"
 
 	"github.com/goaperture/goaperture/lib/params"
+	"github.com/goaperture/goaperture/v2/collector"
 )
 
 type Switch struct {
-	Handler    func(w http.ResponseWriter, r *http.Request)
-	DirectCall func(input any) any
+	Handler     func(w http.ResponseWriter, r *http.Request)
+	DirectCall  func(input any) any
+	PrepareCall func() collector.RouteDump
 }
 
 func Handle[I Input, O Output](route Route[I, O]) Switch {
@@ -34,6 +36,16 @@ func Handle[I Input, O Output](route Route[I, O]) Switch {
 			}
 
 			return nil
+		},
+		PrepareCall: func() collector.RouteDump {
+
+			var cll = collector.Collector[I, O]{
+				Handler: route.Handler,
+			}
+
+			route.Prepare(cll)
+
+			return cll.GetDump()
 		},
 	}
 }

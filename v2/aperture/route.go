@@ -2,6 +2,8 @@ package aperture
 
 import (
 	"context"
+
+	"github.com/goaperture/goaperture/v2/collector"
 )
 
 type Input interface {
@@ -18,14 +20,15 @@ type T[P Input] interface {
 	Expect(r any)
 }
 
-type Prepare[P Input] = func(controller T[P])
+type CL[P Input, O Output] = collector.Collector[P, O]
+type Prepare[P Input, O Output] = func(collector CL[P, O])
 
 type Route[I Input, O Output] struct {
 	Method        string
 	Handler       Handler[I, O]
 	PrivateAccess bool
 	Description   string
-	Prepare       Prepare[I]
+	Prepare       Prepare[I, O]
 }
 
 func GetPayload[P any](ctx context.Context) (*P, bool) {
