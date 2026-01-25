@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/goaperture/goaperture/v2/collector"
+	"github.com/goaperture/goaperture/v2/exception"
 	"github.com/goaperture/goaperture/v2/params"
 )
 
@@ -18,6 +19,8 @@ type Switch struct {
 func Handle[I Input, O Output](route Route[I, O]) Switch {
 	return Switch{
 		Handler: func(w http.ResponseWriter, r *http.Request) {
+			defer exception.Catch(&w)
+
 			var input = params.GetInput[I](r)
 
 			var data = route.Handler(context.Background(), input)

@@ -3,24 +3,18 @@ package aperture
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/goaperture/goaperture/v2/auth"
 )
 
 type Payload any
-
-type Secret struct {
-	Token string
-	Key   struct {
-		Public  string
-		Private string
-	}
-	SecretKey string
-}
 
 type Api[P Payload] struct {
 	Port       int
 	Routes     Routes
 	Payload    *P
-	Secret     Secret
+	Token      string
+	Auth       *auth.Auth[P]
 	Middleware *func(next http.Handler) http.Handler
 }
 
@@ -31,7 +25,11 @@ func (a *Api[P]) Run() {
 		server.HandleFunc(path, route.Handler)
 	}
 
-	if a.Secret.Token != "" {
+	if a.Auth != nil {
+		a.Auth.BindHanders(server)
+	}
+
+	if a.Token != "" {
 		server.HandleFunc(DOC_URL, docHandle(a))
 	}
 
