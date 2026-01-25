@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/goaperture/goaperture/lib/params"
 	"github.com/goaperture/goaperture/v2/collector"
+	"github.com/goaperture/goaperture/v2/params"
 )
 
 type Switch struct {
@@ -43,7 +43,7 @@ func Handle[I Input, O Output](route Route[I, O]) Switch {
 				Handler: route.Handler,
 			}
 
-			route.Prepare(cll)
+			route.Prepare(&cll)
 
 			return cll.GetDump()
 		},

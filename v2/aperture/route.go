@@ -21,7 +21,7 @@ type T[P Input] interface {
 }
 
 type CL[P Input, O Output] = collector.Collector[P, O]
-type Prepare[P Input, O Output] = func(collector CL[P, O])
+type Prepare[P Input, O Output] = func(collector *CL[P, O])
 
 type Route[I Input, O Output] struct {
 	Method        string

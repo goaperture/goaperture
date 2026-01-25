@@ -3,10 +3,8 @@ package aperture
 import (
 	"encoding/json"
 	"net/http"
-	"strings"
 
-	"github.com/goaperture/goaperture/lib/aperture"
-	"github.com/goaperture/goaperture/lib/params"
+	"github.com/goaperture/goaperture/v2/params"
 )
 
 type DocInput struct {
@@ -16,7 +14,7 @@ type DocInput struct {
 type RouteHandler func(w http.ResponseWriter, r *http.Request)
 
 const (
-	DOC_URL = "__doc__"
+	DOC_URL = "/__doc__"
 )
 
 func docHandle[P Payload](api *Api[P]) RouteHandler {
@@ -30,7 +28,7 @@ func docHandle[P Payload](api *Api[P]) RouteHandler {
 
 		data := getDocs(api.Routes)
 
-		result := aperture.Responce{
+		result := Responce{
 			Data: data,
 		}
 
@@ -39,19 +37,18 @@ func docHandle[P Payload](api *Api[P]) RouteHandler {
 	}
 }
 
-func getDocs(routes Routes) []aperture.DocOutput {
-	var result = []aperture.DocOutput{}
+func getDocs(routes Routes) []DocOutput {
+	var result = []DocOutput{}
 
 	for path, route := range routes {
 		dump := route.PrepareCall()
 
-		result = append(result, aperture.DocOutput{
+		result = append(result, DocOutput{
 			Url:         path,
 			Input:       dump.Inputs,
 			Output:      dump.Outputs,
 			Exceptions:  dump.Errors,
 			Description: dump.Description,
-			Pathprops:   strings.Split(path, "/"),
 		})
 	}
 
