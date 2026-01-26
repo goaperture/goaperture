@@ -3,8 +3,10 @@ package aperture
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/goaperture/goaperture/v2/auth"
+	"github.com/goaperture/goaperture/v2/auth/auth_paths"
 	"github.com/goaperture/goaperture/v2/exception"
 	"github.com/goaperture/goaperture/v2/params"
 )
@@ -13,8 +15,9 @@ type DocOutput struct {
 	Url         string          `json:"url"`
 	Version     string          `json:"version"`
 	Method      string          `json:"method"`
-	Input       any             `json:"inputType"`
-	Output      any             `json:"outputType"`
+	Alias       string          `json:"alias"`
+	Input       any             `json:"inputType,omitempty"`
+	Output      any             `json:"outputType,omitempty"`
 	Errors      []string        `json:"errors,omitempty"`
 	Description string          `json:"description"`
 	AccessKey   auth.Permission `json:"accessKey,omitempty"`
@@ -73,6 +76,7 @@ func getDocs(routes Routes) []DocOutput {
 			Output:      dump.Outputs,
 			Errors:      dump.Errors,
 			Description: dump.Description,
+			Alias:       getAliasFromUrl(path),
 			AccessKey:   "",
 			Version:     "v2",
 			Method:      "POST",
@@ -82,6 +86,35 @@ func getDocs(routes Routes) []DocOutput {
 	return result
 }
 
+func getAliasFromUrl(url string) string {
+	return strings.ToLower(strings.ReplaceAll(url, "/", "_"))
+}
+
 func getAuthDocs() []DocOutput {
-	return []DocOutput{}
+	return []DocOutput{
+		{
+			Url:         auth_paths.LOGIN,
+			Alias:       getAliasFromUrl(auth_paths.LOGIN),
+			Description: "Получить Access Token",
+			Version:     "v1",
+			Method:      "POST",
+			Input: []any{
+				auth.LoginInput{},
+			},
+		},
+		{
+			Url:         auth_paths.LOGOUT,
+			Alias:       getAliasFromUrl(auth_paths.LOGOUT),
+			Description: "Выход",
+			Version:     "v1",
+			Method:      "POST",
+		},
+		{
+			Url:         auth_paths.REFRESH,
+			Alias:       getAliasFromUrl(auth_paths.REFRESH),
+			Description: "Обновить JWT",
+			Version:     "v1",
+			Method:      "POST",
+		},
+	}
 }

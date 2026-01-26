@@ -4,17 +4,15 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/goaperture/goaperture/v2/auth/auth_paths"
 	"github.com/goaperture/goaperture/v2/exception"
-)
-
-const (
-	refreshPath = "/auth/refresh"
+	"github.com/goaperture/goaperture/v2/params"
 )
 
 func (a *Auth[Payload]) BindHanders(server *http.ServeMux) {
-	server.HandleFunc("/auth/login", a.onLogin)
-	server.HandleFunc("/auth/logout", a.onLogout)
-	server.HandleFunc(refreshPath, a.onRefresh)
+	server.HandleFunc(auth_paths.LOGIN, a.onLogin)
+	server.HandleFunc(auth_paths.LOGOUT, a.onLogout)
+	server.HandleFunc(auth_paths.REFRESH, a.onRefresh)
 }
 
 type LoginInput struct {
@@ -29,8 +27,9 @@ type LoginOutput struct {
 func (a *Auth[Payload]) onLogin(w http.ResponseWriter, r *http.Request) {
 	defer exception.Catch(&w)
 
-	var input LoginInput
-	json.NewDecoder(r.Body).Decode(&input)
+	// var input LoginInput
+	// json.NewDecoder(r.Body).Decode(&input)
+	var input = params.GetInput[LoginInput](r)
 
 	id := a.Login(input.Login, input.Password)
 	payload := a.GetPayload(id)
@@ -48,5 +47,16 @@ func (a *Auth[Payload]) onLogout(w http.ResponseWriter, r *http.Request) {
 
 func (a *Auth[Payload]) onRefresh(w http.ResponseWriter, r *http.Request) {
 	defer exception.Catch(&w)
+
+	var refreshToken = getRefreshToken(r)
+	privatePayload := getPayloadFromJwt[PrivatePayload](refreshToken)
+
+	payload := a.GetPayload(privatePayload.Id)
+	accessToken := a.getAccessToken(payload)
+	json.NewEncoder(w).Encode(LoginOutput{accessToken})
+
+}
+
+func getGetBearerToken(w *http.ResponseWriter) {
 
 }

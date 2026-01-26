@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/goaperture/goaperture/v2/auth/auth_paths"
 	"github.com/goaperture/goaperture/v2/exception"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -30,16 +31,16 @@ func (a *Auth[Payload]) createRefreshToken(w *http.ResponseWriter, id ID) {
 	life := a.LiveTime.RefreshKey
 
 	if life == 0 {
-		life = 24 * 60
+		life = 24 * 60 * 7
 	}
 
-	var token = getJwt(PrivatePayload{id}, a.LiveTime.RefreshKey)
-	expires := time.Now().Add(time.Minute * time.Duration(a.LiveTime.RefreshKey))
+	var token = getJwt(PrivatePayload{id}, life)
+	expires := time.Now().Add(time.Minute * time.Duration(life))
 
 	http.SetCookie(*w, &http.Cookie{
 		Name:     refreshCookieKey,
 		Value:    token,
-		Path:     refreshPath,
+		Path:     auth_paths.REFRESH,
 		Expires:  expires,
 		HttpOnly: true,
 		Secure:   a.Sequre,
@@ -48,11 +49,20 @@ func (a *Auth[Payload]) createRefreshToken(w *http.ResponseWriter, id ID) {
 
 }
 
+func getRefreshToken(r *http.Request) string {
+	cookie, err := r.Cookie(refreshCookieKey)
+	if err != nil {
+		exception.Fall("Не удалось получить refresh token", "invalid Refresh Token", 401)
+	}
+
+	return cookie.Value
+}
+
 func getJwt[T any](payload T, life int) string {
 	secret := ""
 
 	if life == 0 {
-		life = 10
+		life = 5
 	}
 
 	claims := CustomClaims[T]{
@@ -65,8 +75,26 @@ func getJwt[T any](payload T, life int) string {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	result, err := token.SignedString([]byte(secret))
 	if err != nil {
-		exception.Fall("Не удалось создать Токен", "4511")
+		exception.Fall("Не удалось создать token", "fall Signed Token", 401)
 	}
 
 	return result
+}
+
+func getPayloadFromJwt[P any](tokenString string) *P {
+	var secret = ""
+
+	token, err := jwt.ParseWithClaims(tokenString, &CustomClaims[P]{}, func(t *jwt.Token) (interface{}, error) {
+		return []byte(secret), nil
+	})
+
+	if err != nil {
+		exception.Fall("Не удалось инициализировать токен", "bad token", 401)
+	}
+
+	if v, ok := token.Claims.(*CustomClaims[P]); ok && token.Valid {
+		return &v.Payload
+	}
+
+	return nil
 }
