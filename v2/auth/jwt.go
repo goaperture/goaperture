@@ -49,6 +49,18 @@ func (a *Auth[Payload]) createRefreshToken(w *http.ResponseWriter, id ID) {
 
 }
 
+func (a *Auth[Payload]) removeRefreshToken(w *http.ResponseWriter) {
+	http.SetCookie(*w, &http.Cookie{
+		Name:     refreshCookieKey,
+		Value:    "",
+		MaxAge:   -1,
+		Path:     auth_paths.REFRESH,
+		HttpOnly: true,
+		Secure:   a.Sequre,
+		SameSite: http.SameSiteStrictMode,
+	})
+}
+
 func getRefreshToken(r *http.Request) string {
 	cookie, err := r.Cookie(refreshCookieKey)
 	if err != nil {

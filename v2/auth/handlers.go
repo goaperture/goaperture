@@ -6,7 +6,7 @@ import (
 
 	"github.com/goaperture/goaperture/v2/auth/auth_paths"
 	"github.com/goaperture/goaperture/v2/exception"
-	"github.com/goaperture/goaperture/v2/params"
+	"github.com/goaperture/goaperture/v2/responce"
 )
 
 func (a *Auth[Payload]) BindHanders(server *http.ServeMux) {
@@ -27,9 +27,9 @@ type LoginOutput struct {
 func (a *Auth[Payload]) onLogin(w http.ResponseWriter, r *http.Request) {
 	defer exception.Catch(&w)
 
-	// var input LoginInput
-	// json.NewDecoder(r.Body).Decode(&input)
-	var input = params.GetInput[LoginInput](r)
+	var input LoginInput
+	json.NewDecoder(r.Body).Decode(&input)
+	// var input = params.GetInput[LoginInput](r)
 
 	id := a.Login(input.Login, input.Password)
 	payload := a.GetPayload(id)
@@ -43,6 +43,9 @@ func (a *Auth[Payload]) onLogin(w http.ResponseWriter, r *http.Request) {
 func (a *Auth[Payload]) onLogout(w http.ResponseWriter, r *http.Request) {
 	defer exception.Catch(&w)
 
+	a.removeRefreshToken(&w)
+
+	json.NewEncoder(w).Encode(responce.Success(true))
 }
 
 func (a *Auth[Payload]) onRefresh(w http.ResponseWriter, r *http.Request) {
