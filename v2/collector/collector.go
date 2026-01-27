@@ -33,6 +33,7 @@ func (c *Collector[I, O]) Expect(output any) {
 type RouteDump struct {
 	Method      string
 	Description string
+	AccessKey   string
 	Inputs      []any
 	Outputs     []any
 	Errors      []string

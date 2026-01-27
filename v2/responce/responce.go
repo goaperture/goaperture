@@ -1,14 +1,16 @@
 package responce
 
+type SuccessType struct {
+	Success bool `json:"success"`
+}
+
 type Responce struct {
 	Data     any    `json:"data"`
 	Redirect string `json:"redirect,omitempty"`
 }
 
 func Success(status bool) Responce {
-	return Create(struct {
-		Success bool `json:"success"`
-	}{Success: status})
+	return Create(SuccessType{Success: status})
 }
 
 func Create(data any) Responce {

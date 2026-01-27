@@ -11,9 +11,12 @@ import (
 )
 
 type Switch struct {
-	Handler     func(w http.ResponseWriter, r *http.Request)
-	DirectCall  func(input any) any
-	PrepareCall func() collector.RouteDump
+	Handler       func(w http.ResponseWriter, r *http.Request)
+	DirectCall    func(input any) any
+	PrepareCall   func() collector.RouteDump
+	PrivateAccess bool
+	Description   string
+	Method        string
 }
 
 func Handle[I Input, O Output](route Route[I, O]) Switch {
@@ -50,5 +53,8 @@ func Handle[I Input, O Output](route Route[I, O]) Switch {
 
 			return cll.GetDump()
 		},
+		PrivateAccess: route.PrivateAccess,
+		Description:   route.Description,
+		Method:        route.Method,
 	}
 }
