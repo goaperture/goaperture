@@ -11,17 +11,17 @@ type Payload any
 
 type Api[P Payload] struct {
 	Port       int
-	Routes     Routes
+	routes     Routes
 	Payload    *P
 	Token      string
 	Auth       *auth.Auth[P]
 	Middleware *func(next http.Handler) http.Handler
 }
 
-func (a *Api[P]) Run() {
+func (a *Api[P]) ListenAndServe() {
 	server := http.NewServeMux()
 
-	for path, route := range a.Routes {
+	for path, route := range a.routes {
 		server.HandleFunc(path, route.Handler)
 	}
 
@@ -42,4 +42,9 @@ func (a *Api[P]) wrap(server *http.ServeMux) http.Handler {
 	}
 
 	return server
+}
+
+func (a *Api[P]) Run(routes *Routes) {
+	a.routes = *routes
+	a.ListenAndServe()
 }

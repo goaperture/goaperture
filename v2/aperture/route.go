@@ -35,4 +35,8 @@ func GetPayload[P any](ctx context.Context) (*P, bool) {
 	return nil, true
 }
 
-type Routes = map[string]Switch
+type ApiServer interface {
+	UseRoutes(r *Routes)
+}
+
+type Routes map[string]Switch

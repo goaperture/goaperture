@@ -49,7 +49,7 @@ func docHandle[P Payload](api *Api[P]) RouteHandler {
 			return
 		}
 
-		data := getDocs(api.Routes)
+		data := getDocs(api.routes)
 
 		if api.Auth != nil {
 			data = append(data, getAuthDocs()...)
@@ -105,14 +105,14 @@ func getAuthDocs() []DocOutput {
 		{
 			Url:         auth_paths.LOGOUT,
 			Alias:       getAliasFromUrl(auth_paths.LOGOUT),
-			Description: "Выход",
+			Description: "Заблокировать Access Token",
 			Version:     "v1",
 			Method:      "POST",
 		},
 		{
 			Url:         auth_paths.REFRESH,
 			Alias:       getAliasFromUrl(auth_paths.REFRESH),
-			Description: "Обновить JWT",
+			Description: "Обновить Access Token",
 			Version:     "v1",
 			Method:      "POST",
 		},
