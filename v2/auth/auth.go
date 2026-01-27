@@ -1,5 +1,7 @@
 package auth
 
+import "github.com/goaperture/goaperture/v2/auth_rsa"
+
 type ID string
 type Permission string
 type Permissions []Permission
@@ -18,11 +20,8 @@ type LiveTime struct {
 }
 
 type RSA struct {
-	PublicKey  string
-	PrivateKey string
-
-	publicToken  string
-	privateToken string
+	Public  *auth_rsa.PublicPemKey
+	Private *auth_rsa.PrivatePemKey
 }
 
 type Auth[Payload any] struct {
