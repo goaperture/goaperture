@@ -12,7 +12,6 @@ type Payload any
 type Api[P Payload] struct {
 	Port       int
 	routes     Routes
-	Payload    *P
 	Token      string
 	Auth       *auth.Auth[P]
 	Middleware *func(next http.Handler) http.Handler

@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -102,7 +103,7 @@ func GetPayloadFromJwt[P any](tokenString string) *P {
 	})
 
 	if err != nil {
-		exception.Fall("Не удалось инициализировать токен", "bad token", 401)
+		exception.Fall(fmt.Sprintf("%s", err), "invalid token", 401)
 	}
 
 	if v, ok := token.Claims.(*CustomClaims[P]); ok && token.Valid {

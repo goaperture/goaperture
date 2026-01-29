@@ -2,9 +2,12 @@ package exception
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/goaperture/goaperture/v2/responce"
 )
 
 type Status struct {
@@ -25,19 +28,19 @@ func Fall(message, code string, status int) {
 
 func NotAccess(permission string) {
 	panic(CustomPanic{Message: "Нет доступа", Code: getCode("access denied"), Permission: permission, Status: getStatus(403)})
-
 }
 
 func Catch(w *http.ResponseWriter) {
 	if r := recover(); r != nil {
 		if v, ok := r.(CustomPanic); ok {
 			(*w).WriteHeader(v.Status.Code)
-			json.NewEncoder(*w).Encode(v)
+			json.NewEncoder(*w).Encode(responce.Error(v))
 		} else {
 			log.Println("!undefined panic", r)
-			panic(r)
-		}
 
+			(*w).WriteHeader(500)
+			json.NewEncoder(*w).Encode(responce.Error(CustomPanic{Message: fmt.Sprintf("%s", r)}))
+		}
 	}
 }
 

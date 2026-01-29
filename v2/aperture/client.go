@@ -2,15 +2,17 @@ package aperture
 
 import (
 	"context"
-	"net/http"
 
+	"github.com/goaperture/goaperture/v2/auth"
 	"github.com/goaperture/goaperture/v2/client"
 )
 
-func (a *Api[P]) GetClient(ctx context.Context) *P {
-	return client.Get[P](ctx).GetPayload()
-}
+func (a *Api[P]) GetClientPayload(ctx context.Context) *P {
+	token := client.GetToken(ctx)
+	if token == nil {
+		return nil
+	}
 
-func GetBearerToken(r *http.Request) {
-
+	payload := auth.GetPayloadFromJwt[P](*token)
+	return payload
 }

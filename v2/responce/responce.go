@@ -5,8 +5,9 @@ type SuccessType struct {
 }
 
 type Responce struct {
-	Data     any    `json:"data"`
+	Data     any    `json:"data,omitempty"`
 	Redirect string `json:"redirect,omitempty"`
+	Error    any    `json:"error,omitempty"`
 }
 
 func Success(status bool) Responce {
@@ -19,4 +20,8 @@ func Create(data any) Responce {
 
 func Redirect(to string) Responce {
 	return Responce{Redirect: to}
+}
+
+func Error(error any) Responce {
+	return Responce{Error: error}
 }
