@@ -7,12 +7,12 @@ import (
 	"github.com/goaperture/goaperture/v2/auth/auth_paths"
 )
 
-func (a *Auth[Payload]) getSecret() xsecret {
-	return xsecret{rsa: &a.RSA, strSecret: a.Secret}
+func (a *Auth[Payload]) GetSecret() XSecret {
+	return XSecret{rsa: &a.RSA, strSecret: a.Secret}
 }
 
 func (a *Auth[Payload]) getAccessToken(client Payload) string {
-	var token = getJwt(client, a.LiveTime.AccessKey, a.getSecret())
+	var token = getJwt(client, a.LiveTime.AccessKey, a.GetSecret())
 	return token
 }
 
@@ -23,7 +23,7 @@ func (a *Auth[Payload]) createRefreshToken(w *http.ResponseWriter, id ID) {
 		life = 24 * 60 * 7
 	}
 
-	var token = getJwt(PrivatePayload{id}, life, a.getSecret())
+	var token = getJwt(PrivatePayload{id}, life, a.GetSecret())
 	expires := time.Now().Add(time.Minute * time.Duration(life))
 
 	http.SetCookie(*w, &http.Cookie{

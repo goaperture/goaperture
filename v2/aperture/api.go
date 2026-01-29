@@ -23,7 +23,7 @@ func (a *Api[P]) Run() {
 	server := http.NewServeMux()
 
 	for path, route := range a.routes {
-		server.HandleFunc(path, route.Handler)
+		server.HandleFunc(path, route.Handler(a.Auth.GetSecret()))
 	}
 
 	if a.Auth != nil {

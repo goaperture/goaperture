@@ -8,11 +8,15 @@ import (
 )
 
 func (a *Api[P]) GetClientPayload(ctx context.Context) *P {
+	if a.Auth == nil {
+		return nil
+	}
+
 	token := client.GetToken(ctx)
 	if token == nil {
 		return nil
 	}
 
-	payload := auth.GetPayloadFromJwt[P](*token)
+	payload := auth.GetPayloadFromJwt[P](*token, a.Auth.GetSecret())
 	return payload
 }

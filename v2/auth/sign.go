@@ -15,7 +15,7 @@ type RSA struct {
 	Private *auth_rsa.PrivatePemKey
 }
 
-type xsecret struct {
+type XSecret struct {
 	rsa       *RSA
 	strSecret string
 }

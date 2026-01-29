@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"crypto/rsa"
 	"fmt"
 	"net/http"
 	"strings"
@@ -32,7 +33,7 @@ func getRefreshToken(r *http.Request) string {
 	return cookie.Value
 }
 
-func getJwt[T any](payload T, life int, secret xsecret) string {
+func getJwt[T any](payload T, life int, secret XSecret) string {
 	if life == 0 {
 		life = 5
 	}
@@ -52,11 +53,14 @@ func getJwt[T any](payload T, life int, secret xsecret) string {
 
 }
 
-func GetPayloadFromJwt[P any](tokenString string) *P {
-	var secret = ""
-
+func GetPayloadFromJwt[P any](tokenString string, secret XSecret) *P {
 	token, err := jwt.ParseWithClaims(tokenString, &CustomClaims[P]{}, func(t *jwt.Token) (interface{}, error) {
-		return []byte(secret), nil
+		if secret.rsa.Public != nil {
+			key := (*rsa.PublicKey)(*secret.rsa.Public)
+			return key, nil
+		}
+
+		return []byte(secret.strSecret), nil
 	})
 
 	if err != nil {
@@ -73,8 +77,4 @@ func GetPayloadFromJwt[P any](tokenString string) *P {
 func ParseAccessToken(r *http.Request) (string, bool) {
 	auth := r.Header.Get("Authorization")
 	return strings.CutPrefix(auth, "Bearer ")
-}
-
-func CheckSecret() {
-
 }
