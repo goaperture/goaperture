@@ -10,15 +10,16 @@ type FileData struct {
 	Pkg         string
 	Name        string
 	Description string
+	Input       string
 }
 
-func GetRouteCode(pkg, name, description string) string {
+func GetRouteCode(pkg, name, description, input string) string {
 	var code = `package {{.Pkg}}
 	import (
 		"context"
 		"github.com/goaperture/goaperture/v2/aperture"
 	)
-	type {{.Name}}Input struct {}
+	type {{.Name}}Input struct {{{.Input}}}
 	type {{.Name}}Output interface {any}
 	var {{.Name}} = aperture.Route[{{.Name}}Input, {{.Name}}Output]{
 		Description:   "{{.Description}}",
@@ -32,7 +33,7 @@ func GetRouteCode(pkg, name, description string) string {
 	}
 	`
 	var result strings.Builder
-	template.Must(template.New("route").Parse(code)).Execute(&result, FileData{pkg, name, description})
+	template.Must(template.New("route").Parse(code)).Execute(&result, FileData{pkg, name, description, input})
 
 	formatted, err := format.Source([]byte(result.String()))
 	if err != nil {
