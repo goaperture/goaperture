@@ -22,8 +22,8 @@ type CustomPanic struct {
 	Status     Status `json:"status"`
 }
 
-func Fall(message, code string, status int) {
-	panic(CustomPanic{Message: message, Code: getCode(code), Status: getStatus(status)})
+func Fall(message any, code string, status int) {
+	panic(CustomPanic{Message: fmt.Sprintf("%s", message), Code: getCode(code), Status: getStatus(status)})
 }
 
 func NotAccess(permission string) {

@@ -1,17 +1,51 @@
 package auth
 
-type ID string
+import (
+	"net/http"
+	"time"
 
-type LiveTime struct {
-	AccessKey  int
-	RefreshKey int
+	"github.com/goaperture/goaperture/v2/auth/auth_paths"
+)
+
+func (a *Auth[Payload]) getSecret() xsecret {
+	return xsecret{rsa: &a.RSA, strSecret: a.Secret}
 }
 
-type Auth[Payload any] struct {
-	Sequre     bool
-	LiveTime   LiveTime
-	Login      func(login, password string) ID
-	GetPayload func(id ID) Payload
-	Secret     string
-	RSA        RSA
+func (a *Auth[Payload]) getAccessToken(client Payload) string {
+	var token = getJwt(client, a.LiveTime.AccessKey, a.getSecret())
+	return token
+}
+
+func (a *Auth[Payload]) createRefreshToken(w *http.ResponseWriter, id ID) {
+	life := a.LiveTime.RefreshKey
+
+	if life == 0 {
+		life = 24 * 60 * 7
+	}
+
+	var token = getJwt(PrivatePayload{id}, life, a.getSecret())
+	expires := time.Now().Add(time.Minute * time.Duration(life))
+
+	http.SetCookie(*w, &http.Cookie{
+		Name:     refreshCookieKey,
+		Value:    token,
+		Path:     auth_paths.REFRESH,
+		Expires:  expires,
+		HttpOnly: true,
+		Secure:   a.Sequre,
+		SameSite: http.SameSiteStrictMode,
+	})
+
+}
+
+func (a *Auth[Payload]) removeRefreshToken(w *http.ResponseWriter) {
+	http.SetCookie(*w, &http.Cookie{
+		Name:     refreshCookieKey,
+		Value:    "",
+		MaxAge:   -1,
+		Path:     auth_paths.REFRESH,
+		HttpOnly: true,
+		Secure:   a.Sequre,
+		SameSite: http.SameSiteStrictMode,
+	})
 }
