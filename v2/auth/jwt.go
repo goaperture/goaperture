@@ -24,8 +24,12 @@ type CustomClaims[T any] struct {
 	jwt.RegisteredClaims
 }
 
+func (a *Auth[Payload]) getSecret() xsecret {
+	return xsecret{rsa: &a.RSA, strSecret: a.Secret}
+}
+
 func (a *Auth[Payload]) getAccessToken(client Payload) string {
-	var token = getJwt(client, a.LiveTime.AccessKey)
+	var token = getJwt(client, a.LiveTime.AccessKey, a.getSecret())
 	return token
 }
 
@@ -36,7 +40,7 @@ func (a *Auth[Payload]) createRefreshToken(w *http.ResponseWriter, id ID) {
 		life = 24 * 60 * 7
 	}
 
-	var token = getJwt(PrivatePayload{id}, life)
+	var token = getJwt(PrivatePayload{id}, life, a.getSecret())
 	expires := time.Now().Add(time.Minute * time.Duration(life))
 
 	http.SetCookie(*w, &http.Cookie{
@@ -72,9 +76,7 @@ func getRefreshToken(r *http.Request) string {
 	return cookie.Value
 }
 
-func getJwt[T any](payload T, life int) string {
-	secret := ""
-
+func getJwt[T any](payload T, life int, secret xsecret) string {
 	if life == 0 {
 		life = 5
 	}
@@ -86,13 +88,12 @@ func getJwt[T any](payload T, life int) string {
 		},
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	result, err := token.SignedString([]byte(secret))
-	if err != nil {
-		exception.Fall("Не удалось создать token", "fall Signed Token", 401)
+	if secret.rsa.Private != nil {
+		return createTokenWithPrivateSign(claims, secret.rsa.Private)
+	} else {
+		return createTokenWithSecret(claims, secret.strSecret)
 	}
 
-	return result
 }
 
 func GetPayloadFromJwt[P any](tokenString string) *P {

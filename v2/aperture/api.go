@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/goaperture/goaperture/v2/auth"
+	"github.com/goaperture/goaperture/v2/metrics"
 )
 
 type Payload any
@@ -14,10 +15,11 @@ type Api[P Payload] struct {
 	routes     Routes
 	Token      string
 	Auth       *auth.Auth[P]
-	Middleware *func(next http.Handler) http.Handler
+	middleware *func(next http.Handler) http.Handler
+	Metrics    bool
 }
 
-func (a *Api[P]) ListenAndServe() {
+func (a *Api[P]) Run() {
 	server := http.NewServeMux()
 
 	for path, route := range a.routes {
@@ -28,6 +30,10 @@ func (a *Api[P]) ListenAndServe() {
 		a.Auth.BindHanders(server)
 	}
 
+	if a.Metrics {
+		metrics.BindHanders(server)
+	}
+
 	if a.Token != "" {
 		server.HandleFunc(DOC_URL, docHandle(a))
 	}
@@ -36,14 +42,30 @@ func (a *Api[P]) ListenAndServe() {
 }
 
 func (a *Api[P]) wrap(server *http.ServeMux) http.Handler {
-	if a.Middleware != nil {
-		return (*a.Middleware)(server)
+	if a.middleware != nil {
+		return (*a.middleware)(server)
 	}
 
 	return server
 }
 
-func (a *Api[P]) Run(routes *Routes) {
+func (a *Api[P]) Middleware(m func(next http.Handler) http.Handler) *Api[P] {
+	a.middleware = &m
+
+	return a
+}
+
+func (a *Api[P]) SetPort(port int) *Api[P] {
+	a.Port = port
+	return a
+}
+
+func (a *Api[P]) SetToken(token string) *Api[P] {
+	a.Token = token
+	return a
+}
+
+func (a *Api[P]) Routes(routes *Routes) *Api[P] {
 	a.routes = *routes
-	a.ListenAndServe()
+	return a
 }
