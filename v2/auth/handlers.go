@@ -52,14 +52,10 @@ func (a *Auth[Payload]) onRefresh(w http.ResponseWriter, r *http.Request) {
 	defer exception.Catch(&w)
 
 	var refreshToken = getRefreshToken(r)
-	privatePayload := getPayloadFromJwt[PrivatePayload](refreshToken)
+	privatePayload := GetPayloadFromJwt[PrivatePayload](refreshToken)
 
 	payload := a.GetPayload(privatePayload.Id)
 	accessToken := a.getAccessToken(payload)
 	json.NewEncoder(w).Encode(LoginOutput{accessToken})
-
-}
-
-func getGetBearerToken(w *http.ResponseWriter) {
 
 }

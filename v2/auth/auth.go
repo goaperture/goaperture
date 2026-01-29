@@ -3,8 +3,6 @@ package auth
 import "github.com/goaperture/goaperture/v2/auth_rsa"
 
 type ID string
-type Permission string
-type Permissions []Permission
 
 type Secret struct {
 	Key struct {

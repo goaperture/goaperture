@@ -5,10 +5,16 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/goaperture/goaperture/v2/auth"
+	"github.com/goaperture/goaperture/v2/client"
 	"github.com/goaperture/goaperture/v2/collector"
 	"github.com/goaperture/goaperture/v2/exception"
 	"github.com/goaperture/goaperture/v2/params"
 )
+
+type TempPayload struct {
+	auth.Permissions `json:"permissions"`
+}
 
 type Switch struct {
 	Handler       func(w http.ResponseWriter, r *http.Request)
@@ -24,9 +30,26 @@ func Handle[I Input, O Output](route Route[I, O]) Switch {
 		Handler: func(w http.ResponseWriter, r *http.Request) {
 			defer exception.Catch(&w)
 
+			jwt, exists := auth.ParseAccessToken(r)
+
+			if route.PrivateAccess {
+				accessKey := auth.GetAccessKeyFromUrl(r.Pattern)
+				if !exists {
+					exception.NotAccess(accessKey)
+				}
+
+				payload := auth.GetPayloadFromJwt[TempPayload](jwt)
+				payload.Permissions.CheckX(accessKey)
+			}
+
+			ctx := r.Context()
+			if exists {
+				ctx = client.WithToken(ctx, jwt)
+			}
+
 			var input = params.GetInput[I](r)
 
-			var data = route.Handler(context.Background(), input)
+			var data = route.Handler(ctx, input)
 
 			w.Header().Set("Content-Type", "application/json")
 			result := Responce{

@@ -2,6 +2,7 @@ package auth
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/goaperture/goaperture/v2/auth/auth_paths"
@@ -93,7 +94,7 @@ func getJwt[T any](payload T, life int) string {
 	return result
 }
 
-func getPayloadFromJwt[P any](tokenString string) *P {
+func GetPayloadFromJwt[P any](tokenString string) *P {
 	var secret = ""
 
 	token, err := jwt.ParseWithClaims(tokenString, &CustomClaims[P]{}, func(t *jwt.Token) (interface{}, error) {
@@ -109,4 +110,9 @@ func getPayloadFromJwt[P any](tokenString string) *P {
 	}
 
 	return nil
+}
+
+func ParseAccessToken(r *http.Request) (string, bool) {
+	auth := r.Header.Get("Authorization")
+	return strings.CutPrefix(auth, "Bearer ")
 }

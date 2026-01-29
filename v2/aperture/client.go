@@ -1,7 +1,16 @@
 package aperture
 
-import "context"
+import (
+	"context"
+	"net/http"
 
-func (a *Api[P]) GetClient(context.Context) *P {
-	return nil
+	"github.com/goaperture/goaperture/v2/client"
+)
+
+func (a *Api[P]) GetClient(ctx context.Context) *P {
+	return client.Get[P](ctx).GetPayload()
+}
+
+func GetBearerToken(r *http.Request) {
+
 }
