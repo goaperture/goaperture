@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 )
 
-func CreateRoute(path, name, description, input string) {
+func CreateRoute(path, name, description string) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		panic(err)
@@ -14,7 +14,7 @@ func CreateRoute(path, name, description, input string) {
 	os.MkdirAll(absPath, 0777)
 	pkg := filepath.Base(absPath)
 
-	fileContent := GetRouteCode(pkg, name, description, input)
+	fileContent := GetRouteCode(pkg, name, description)
 
 	file := filepath.Join(absPath, name+".go")
 

@@ -10,6 +10,25 @@ type Method struct {
 	Description string
 }
 
+var methods = []Method{
+	{
+		Name:        "Create",
+		Description: "Создать ",
+	},
+	{
+		Name:        "Get",
+		Description: "Получить ",
+	},
+	{
+		Name:        "Update",
+		Description: "Обновить ",
+	},
+	{
+		Name:        "Delete",
+		Description: "Удалить ",
+	},
+}
+
 var crudCmd = &cobra.Command{
 	Use:   "crud",
 	Short: "A brief description of your command",
@@ -22,27 +41,8 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		path, name, description := args[0], args[1], args[2]
 
-		methods := []Method{
-			{
-				Name:        "Create" + name,
-				Description: "Создать " + description,
-			},
-			{
-				Name:        "Get" + name,
-				Description: "Получить " + description,
-			},
-			{
-				Name:        "Update" + name,
-				Description: "Обновить " + description,
-			},
-			{
-				Name:        "Delete" + name,
-				Description: "Удалить " + description,
-			},
-		}
-
 		for _, method := range methods {
-			templates.CreateRoute(path, method.Name, method.Description, "")
+			templates.CreateRoute(path, method.Name+name, method.Description+description)
 		}
 	},
 }

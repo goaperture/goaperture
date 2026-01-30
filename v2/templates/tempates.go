@@ -2,6 +2,7 @@ package templates
 
 import (
 	"go/format"
+	"log"
 	"strings"
 	"text/template"
 )
@@ -10,16 +11,15 @@ type FileData struct {
 	Pkg         string
 	Name        string
 	Description string
-	Input       string
 }
 
-func GetRouteCode(pkg, name, description, input string) string {
+func GetRouteCode(pkg, name, description string) string {
 	var code = `package {{.Pkg}}
 	import (
 		"context"
 		"github.com/goaperture/goaperture/v2/aperture"
 	)
-	type {{.Name}}Input struct {{{.Input}}}
+	type {{.Name}}Input struct { }
 	type {{.Name}}Output interface {any}
 	var {{.Name}} = aperture.Route[{{.Name}}Input, {{.Name}}Output]{
 		Description:   "{{.Description}}",
@@ -33,7 +33,12 @@ func GetRouteCode(pkg, name, description, input string) string {
 	}
 	`
 	var result strings.Builder
-	template.Must(template.New("route").Parse(code)).Execute(&result, FileData{pkg, name, description, input})
+	tmp, err := template.New("route").Parse(code)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	tmp.Execute(&result, FileData{pkg, name, description})
 
 	formatted, err := format.Source([]byte(result.String()))
 	if err != nil {

@@ -20,7 +20,7 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		path, name, description := args[0], args[1], args[2]
-		templates.CreateRoute(path, name, description, "")
+		templates.CreateRoute(path, name, description)
 	},
 }
 
