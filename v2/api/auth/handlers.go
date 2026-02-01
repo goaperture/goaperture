@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/goaperture/goaperture/v2/auth/auth_paths"
+	"github.com/goaperture/goaperture/v2/api/auth/auth_paths"
 	"github.com/goaperture/goaperture/v2/exception"
 	"github.com/goaperture/goaperture/v2/responce"
 )

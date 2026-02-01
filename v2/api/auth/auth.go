@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/goaperture/goaperture/v2/auth/auth_paths"
+	"github.com/goaperture/goaperture/v2/api/auth/auth_paths"
 )
 
 func (a *Auth[Payload]) GetSecret() XSecret {

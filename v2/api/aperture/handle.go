@@ -5,27 +5,14 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/goaperture/goaperture/v2/auth"
-	"github.com/goaperture/goaperture/v2/client"
-	"github.com/goaperture/goaperture/v2/collector"
+	"github.com/goaperture/goaperture/v2/api/auth"
+	"github.com/goaperture/goaperture/v2/api/client"
+	"github.com/goaperture/goaperture/v2/api/collector"
+	"github.com/goaperture/goaperture/v2/api/params"
 	"github.com/goaperture/goaperture/v2/exception"
-	"github.com/goaperture/goaperture/v2/params"
 )
 
-type TempPayload struct {
-	auth.Permissions `json:"permissions"`
-}
-
-type Switch struct {
-	Handler       func(secret auth.XSecret) func(w http.ResponseWriter, r *http.Request)
-	DirectCall    func(input any) any
-	PrepareCall   func() collector.RouteDump
-	PrivateAccess bool
-	Description   string
-	Method        string
-}
-
-func Handle[I Input, O Output](route Route[I, O]) Switch {
+func Handle[I Input, O Output](route *Route[I, O]) Switch {
 	return Switch{
 		Handler: func(secret auth.XSecret) func(w http.ResponseWriter, r *http.Request) {
 			return func(w http.ResponseWriter, r *http.Request) {
@@ -39,7 +26,7 @@ func Handle[I Input, O Output](route Route[I, O]) Switch {
 						exception.NotAccess(accessKey)
 					}
 
-					payload := auth.GetPayloadFromJwt[TempPayload](jwt, secret)
+					payload := auth.GetPayloadFromJwt[auth.TempPayload](jwt, secret)
 					payload.Permissions.CheckX(accessKey)
 				}
 

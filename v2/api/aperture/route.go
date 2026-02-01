@@ -3,7 +3,7 @@ package aperture
 import (
 	"context"
 
-	"github.com/goaperture/goaperture/v2/collector"
+	"github.com/goaperture/goaperture/v2/api/collector"
 )
 
 type Input interface {

@@ -5,7 +5,7 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 
-	"github.com/goaperture/goaperture/v2/auth_rsa"
+	"github.com/goaperture/goaperture/v2/api/auth_rsa"
 	"github.com/goaperture/goaperture/v2/exception"
 	"github.com/golang-jwt/jwt/v5"
 )

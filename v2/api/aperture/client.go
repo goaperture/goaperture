@@ -3,8 +3,8 @@ package aperture
 import (
 	"context"
 
-	"github.com/goaperture/goaperture/v2/auth"
-	"github.com/goaperture/goaperture/v2/client"
+	"github.com/goaperture/goaperture/v2/api/auth"
+	"github.com/goaperture/goaperture/v2/api/client"
 )
 
 func (a *Api[P]) GetClientPayload(ctx context.Context) *P {

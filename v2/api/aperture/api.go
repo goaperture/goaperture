@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/goaperture/goaperture/v2/auth"
+	"github.com/goaperture/goaperture/v2/api/auth"
 	"github.com/goaperture/goaperture/v2/metrics"
+	ws "github.com/goaperture/goaperture/v2/ws/aperture"
 )
 
 type Payload any
@@ -14,6 +15,7 @@ type Api[P Payload] struct {
 	Port       int
 	routes     Routes
 	Token      string
+	ws         *ws.WebSockets
 	Auth       *auth.Auth[P]
 	middleware *func(next http.Handler) http.Handler
 	Metrics    bool
@@ -21,13 +23,18 @@ type Api[P Payload] struct {
 
 func (a *Api[P]) Run() {
 	server := http.NewServeMux()
+	secret := a.Auth.GetSecret()
 
 	for path, route := range a.routes {
-		server.HandleFunc(path, route.Handler(a.Auth.GetSecret()))
+		server.HandleFunc(path, route.Handler(secret))
 	}
 
 	if a.Auth != nil {
 		a.Auth.BindHanders(server)
+	}
+
+	if a.ws != nil {
+		a.ws.BindHanders(server, secret)
 	}
 
 	if a.Metrics {

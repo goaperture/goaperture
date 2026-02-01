@@ -4,15 +4,17 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/goaperture/goaperture/v2/auth"
-	"github.com/goaperture/goaperture/v2/auth/auth_paths"
+	"github.com/goaperture/goaperture/v2/api/auth"
+	"github.com/goaperture/goaperture/v2/api/auth/auth_paths"
+	"github.com/goaperture/goaperture/v2/api/params"
 	"github.com/goaperture/goaperture/v2/exception"
-	"github.com/goaperture/goaperture/v2/params"
 	"github.com/goaperture/goaperture/v2/responce"
+	"github.com/goaperture/goaperture/v2/ws/aperture"
 )
 
 type DocOutput struct {
 	Url         string   `json:"url"`
+	Type        string   `json:"type"`
 	Method      string   `json:"method"`
 	Input       any      `json:"inputs,omitempty"`
 	Output      any      `json:"outputs,omitempty"`
@@ -47,7 +49,7 @@ func docHandle[P Payload](api *Api[P]) RouteHandler {
 			return
 		}
 
-		data := getDocs(api.routes)
+		data := getDocs(api.routes, api.ws)
 
 		if api.Auth != nil {
 			data = append(data, getAuthDocs()...)
@@ -62,7 +64,7 @@ func docHandle[P Payload](api *Api[P]) RouteHandler {
 	}
 }
 
-func getDocs(routes Routes) []DocOutput {
+func getDocs(routes Routes, ws *aperture.WebSockets) []DocOutput {
 	var result = []DocOutput{}
 
 	for path, route := range routes {
@@ -76,12 +78,34 @@ func getDocs(routes Routes) []DocOutput {
 
 		result = append(result, DocOutput{
 			Url:         path,
+			Type:        "rest",
 			Input:       dump.Inputs,
 			Output:      dump.Outputs,
 			Errors:      dump.Errors,
 			Description: route.Description,
 			AccessKey:   accessKey,
 			Method:      route.Method,
+		})
+	}
+
+	for path, socket := range *ws {
+		var accessKey string
+
+		if socket.PrivateAccess {
+			accessKey = auth.GetAccessKeyFromUrl(path)
+		}
+
+		shema := "ws"
+		if socket.Sequre {
+			shema = "wss"
+		}
+
+		result = append(result, DocOutput{
+			Url:         path,
+			Type:        "ws",
+			Description: socket.Description,
+			AccessKey:   accessKey,
+			Method:      shema,
 		})
 	}
 
@@ -92,6 +116,7 @@ func getAuthDocs() []DocOutput {
 	return []DocOutput{
 		{
 			Url:         auth_paths.LOGIN,
+			Type:        "rest",
 			Description: "Получить Access Token",
 			Method:      "POST",
 			Input: []any{
@@ -103,6 +128,7 @@ func getAuthDocs() []DocOutput {
 		},
 		{
 			Url:         auth_paths.LOGOUT,
+			Type:        "rest",
 			Description: "Заблокировать Access Token",
 			Method:      "POST",
 			Output: []any{
@@ -111,6 +137,7 @@ func getAuthDocs() []DocOutput {
 		},
 		{
 			Url:         auth_paths.REFRESH,
+			Type:        "rest",
 			Description: "Обновить Access Token",
 			Method:      "POST",
 			Output: []any{
