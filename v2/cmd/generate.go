@@ -7,9 +7,10 @@ import (
 
 func run(cmd *cobra.Command, args []string) {
 	app, _ := cmd.Flags().GetString("app")
-	routes, _ := cmd.Flags().GetString("routes")
+	path, _ := cmd.Flags().GetString("path")
 
-	generate.GenerateRoutes(app, routes)
+	generate.GenerateRoutes(app, path)
+	generate.GenerateWebsockets(app, path)
 }
 
 // generateCmd represents the generate command
@@ -29,5 +30,5 @@ func init() {
 	rootCmd.AddCommand(generateCmd)
 
 	generateCmd.Flags().StringP("app", "a", "app", "Название модуля (go.mod module)")
-	generateCmd.Flags().StringP("routes", "r", "api/routes", "Папка с маршрутами")
+	generateCmd.Flags().StringP("path", "p", "api", "Папка с маршрутами (Обычно api) - там должна быть папка routes или ws")
 }

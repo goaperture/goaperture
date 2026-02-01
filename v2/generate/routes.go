@@ -7,19 +7,13 @@ import (
 	"github.com/dave/jennifer/jen"
 )
 
-const (
-	targetFile = "aperture.go"
-)
-
 func GenerateRoutes(app, outPath string) {
+	routesPath := filepath.Join(outPath, "routes")
 
-	target := filepath.Join(outPath, targetFile)
-	// if _, err := os.Stat(target); err == nil {
-	// 	os.Remove(target)
-	// }
+	target := filepath.Join(routesPath, "routes.go")
 
 	var routes []FileRoute
-	getRoutesFrom(outPath, &routes, true)
+	getRoutesFrom(routesPath, &routes, true)
 
 	// имя пакета, в котором будет сгенерирован файл
 	f := jen.NewFile("routes")
@@ -41,7 +35,7 @@ func GenerateRoutes(app, outPath string) {
 
 	for _, route := range routes {
 		path := app + "/" + route.Import
-		cutUrl := route.Url[len(outPath):]
+		cutUrl := route.Url[len(routesPath):]
 
 		routesDict[jen.Lit(cutUrl)] = jen.Qual(
 			"github.com/goaperture/goaperture/v2/aperture",
@@ -55,6 +49,49 @@ func GenerateRoutes(app, outPath string) {
 	f.Var().Id("Routes").Op("=").Qual(
 		"github.com/goaperture/goaperture/v2/aperture",
 		"Routes",
+	).Values(
+		routesDict,
+	)
+
+	if err := f.Save(target); err != nil {
+		panic(fmt.Sprintf("error saving file: %v", err))
+	}
+}
+
+func GenerateWebsockets(app, outPath string) {
+	routesPath := filepath.Join(outPath, "ws")
+
+	target := filepath.Join(routesPath, "websockets.go")
+
+	var routes []FileRoute
+	getRoutesFrom(routesPath, &routes, true)
+
+	f := jen.NewFile("ws")
+	// основной импорт
+	f.ImportAlias(
+		"github.com/goaperture/goaperture/v2/ws/aperture",
+		"sockets",
+	)
+
+	// собираем map[string]aperture.Handle
+	routesDict := jen.Dict{}
+
+	for _, route := range routes {
+		path := app + "/" + route.Import
+		cutUrl := "/ws" + route.Url[len(routesPath):]
+
+		routesDict[jen.Lit(cutUrl)] = jen.Qual(
+			"github.com/goaperture/goaperture/v2/ws/aperture",
+			"Handle",
+		).Call(
+			jen.Qual(path, route.Route),
+		)
+	}
+
+	// var Routes = aperture.Routes{ ... }
+	f.Var().Id("Routes").Op("=").Qual(
+		"github.com/goaperture/goaperture/v2/ws/aperture",
+		"WebSockets",
 	).Values(
 		routesDict,
 	)
