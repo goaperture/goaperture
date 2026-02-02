@@ -2,6 +2,7 @@ package generate
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/dave/jennifer/jen"
@@ -9,6 +10,10 @@ import (
 
 func GenerateRoutes(app, outPath string) {
 	routesPath := filepath.Join(outPath, "routes")
+
+	if _, err := os.Stat(routesPath); os.IsNotExist(err) {
+		return
+	}
 
 	target := filepath.Join(routesPath, "routes.go")
 
@@ -60,6 +65,10 @@ func GenerateRoutes(app, outPath string) {
 
 func GenerateWebsockets(app, outPath string) {
 	routesPath := filepath.Join(outPath, "ws")
+
+	if _, err := os.Stat(routesPath); os.IsNotExist(err) {
+		return
+	}
 
 	target := filepath.Join(routesPath, "websockets.go")
 

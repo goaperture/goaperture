@@ -14,7 +14,7 @@ type Collector[I any, O any] struct {
 	Errors      []string
 }
 
-func (c *Collector[I, O]) Execute(input I) {
+func (c *Collector[I, O]) Execute(input I) *Collector[I, O] {
 	defer func() {
 		if r := recover(); r != nil {
 			c.Errors = append(c.Errors, fmt.Sprintf("%s", r))
@@ -24,11 +24,31 @@ func (c *Collector[I, O]) Execute(input I) {
 	c.Inputs = append(c.Inputs, input)
 	output := c.Handler(context.Background(), input)
 	c.Outputs = append(c.Outputs, output)
+
+	return c
 }
 
-func (c *Collector[I, O]) Expect(output any) {
-	c.Outputs = append(c.Outputs, output)
+func (c *Collector[I, O]) Entry(input I) *Collector[I, O] {
+	c.Inputs = append(c.Inputs, input)
+
+	return c
 }
+
+func (c *Collector[I, O]) Expect(output any) *Collector[I, O] {
+	c.Outputs = append(c.Outputs, output)
+
+	return c
+}
+
+func (c *Collector[I, O]) ExpectArray(output any) *Collector[I, O] {
+	c.Outputs = append(c.Outputs, []any{output})
+
+	return c
+}
+
+//
+// DUMP
+//
 
 type RouteDump struct {
 	Method      string
