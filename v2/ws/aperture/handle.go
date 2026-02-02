@@ -44,7 +44,13 @@ func Handle(ws *WebSocket) SocketSwitch {
 					return
 				}
 
-				ctx, cancel := context.WithTimeout(r.Context(), time.Minute*time.Duration(ws.IdleTimeout))
+				IdleTimeout := ws.IdleTimeout
+
+				if IdleTimeout == 0 {
+					IdleTimeout = 3
+				}
+
+				ctx, cancel := context.WithTimeout(r.Context(), time.Minute*time.Duration(IdleTimeout))
 				defer cancel()
 
 				if exists {
@@ -60,10 +66,15 @@ func Handle(ws *WebSocket) SocketSwitch {
 
 				defer func() {
 					conn.Close(websocket.StatusInternalError, "close connection")
-					ws.Close(&client, "code", "R")
+
+					if ws.Close != nil {
+						ws.Close(&client, "code", "R")
+					}
 				}()
 
-				ws.Open(&client)
+				if ws.Open != nil {
+					ws.Open(&client)
+				}
 
 				for {
 					_, data, err := conn.Read(ctx)
@@ -72,7 +83,9 @@ func Handle(ws *WebSocket) SocketSwitch {
 						break
 					}
 
-					ws.Message(&client, string(data))
+					if ws.Message != nil {
+						ws.Message(&client, string(data))
+					}
 				}
 			}
 		},

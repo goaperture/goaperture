@@ -25,7 +25,7 @@ to quickly create a Cobra application.`,
 ░█▀█░█▀▀░█▀▀░█▀▄░░█░░█░█░█▀▄░█▀▀
 ░▀░▀░▀░░░▀▀▀░▀░▀░░▀░░▀▀▀░▀░▀░▀▀▀
 		`)
-		fmt.Println("v2.0.52")
+		fmt.Println("v2.0.53")
 	},
 }
 
