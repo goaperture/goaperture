@@ -20,7 +20,7 @@ func GenerateRoutes(app, outPath string) {
 
 	// основной импорт
 	f.ImportAlias(
-		"github.com/goaperture/goaperture/v2/aperture",
+		"github.com/goaperture/goaperture/v2/api/aperture",
 		"api",
 	)
 
@@ -38,10 +38,10 @@ func GenerateRoutes(app, outPath string) {
 		cutUrl := route.Url[len(routesPath):]
 
 		routesDict[jen.Lit(cutUrl)] = jen.Qual(
-			"github.com/goaperture/goaperture/v2/aperture",
+			"github.com/goaperture/goaperture/v2/api/aperture",
 			"Handle",
 		).Call(
-			jen.Qual(path, route.Route),
+			jen.Op("&").Qual(path, route.Route),
 		)
 	}
 
@@ -84,7 +84,7 @@ func GenerateWebsockets(app, outPath string) {
 			"github.com/goaperture/goaperture/v2/ws/aperture",
 			"Handle",
 		).Call(
-			jen.Qual(path, route.Route),
+			jen.Op("&").Qual(path, route.Route),
 		)
 	}
 
