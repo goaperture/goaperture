@@ -23,7 +23,11 @@ type Api[P Payload] struct {
 
 func (a *Api[P]) Run() {
 	server := http.NewServeMux()
-	secret := a.Auth.GetSecret()
+	var secret = auth.XSecret{}
+
+	if a.Auth != nil {
+		secret = a.Auth.GetSecret()
+	}
 
 	for path, route := range a.routes {
 		server.HandleFunc(path, route.Handler(secret))
