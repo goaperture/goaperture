@@ -2,7 +2,9 @@ package generate
 
 import (
 	"fmt"
+	"log"
 	"os"
+	"regexp"
 	"strings"
 	"unicode"
 )
@@ -26,6 +28,15 @@ func getRoutesFrom(path string, routes *[]FileRoute, readOnlyVersions bool) {
 	for _, entry := range content {
 		if readOnlyVersions && !entry.IsDir() {
 			continue
+		}
+
+		if readOnlyVersions {
+			match, _ := regexp.MatchString(`^v\d*$`, entry.Name())
+
+			if !match {
+				log.Fatalf("первая папка (%s) должна быть версией быть в формате 'v[D]'", entry.Name())
+			}
+
 		}
 
 		full := path + "/" + entry.Name()
