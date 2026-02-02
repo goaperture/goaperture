@@ -17,7 +17,7 @@ func GetRouteCode(pkg, name, description string) string {
 	var code = `package {{.Pkg}}
 	import (
 		"context"
-		"github.com/goaperture/goaperture/v2/aperture"
+		"github.com/goaperture/goaperture/v2/api/aperture"
 	)
 	type {{.Name}}Input struct { }
 	type {{.Name}}Output interface {any}
