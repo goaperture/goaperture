@@ -47,7 +47,7 @@ func GenerateRoutes(app, outPath string) {
 
 	// var Routes = aperture.Routes{ ... }
 	f.Var().Id("Routes").Op("=").Qual(
-		"github.com/goaperture/goaperture/v2/aperture",
+		"github.com/goaperture/goaperture/v2/api/aperture",
 		"Routes",
 	).Values(
 		routesDict,
