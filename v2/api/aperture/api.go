@@ -21,7 +21,7 @@ type Api[P Payload] struct {
 	Metrics    bool
 }
 
-func (a *Api[P]) Run() {
+func (a *Api[P]) Run() error {
 	server := http.NewServeMux()
 	var secret = auth.XSecret{}
 
@@ -49,7 +49,7 @@ func (a *Api[P]) Run() {
 		server.HandleFunc(DOC_URL, docHandle(a))
 	}
 
-	http.ListenAndServe(fmt.Sprintf(":%d", a.Port), a.wrap(server))
+	return http.ListenAndServe(fmt.Sprintf(":%d", a.Port), a.wrap(server))
 }
 
 func (a *Api[P]) wrap(server *http.ServeMux) http.Handler {

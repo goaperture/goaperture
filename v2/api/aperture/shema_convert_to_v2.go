@@ -25,19 +25,28 @@ func convertToV2(doc *[]DocOutput) DocResultV2 {
 	for _, route := range *doc {
 		alias, version := getAlias(route.Url)
 
-		aliasType := alias + "___TYPE__"
+		var input any
+		var output any
+
+		if route.Input != nil {
+			input = map[string]any{
+				alias + "___TYPE__": route.Input,
+			}
+		}
+
+		if route.Output != nil {
+			output = map[string]any{
+				alias + "___TYPE__": route.Output,
+			}
+		}
 
 		schema = append(schema, DocOutputV2{
-			Url:     route.Url,
-			Version: version,
-			Alias:   alias,
-			Method:  route.Method,
-			Input: map[string]any{
-				aliasType: route.Input,
-			},
-			Output: map[string]any{
-				aliasType: route.Output,
-			},
+			Url:         route.Url,
+			Version:     version,
+			Alias:       alias,
+			Method:      route.Method,
+			Input:       input,
+			Output:      output,
 			Exceptions:  route.Errors,
 			Description: route.Description,
 		})
