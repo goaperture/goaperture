@@ -29,7 +29,8 @@ type DocResult struct {
 }
 
 type DocInput struct {
-	Token string `json:"token"`
+	Token   string `json:"token"`
+	Version int    `json:"version"`
 }
 
 type RouteHandler func(w http.ResponseWriter, r *http.Request)
@@ -55,13 +56,17 @@ func docHandle[P Payload](api *Api[P]) RouteHandler {
 			schema = append(schema, getAuthDocs()...)
 		}
 
-		result := DocResult{
-			Schema:  schema,
-			Version: 3,
+		w.Header().Set("Content-Type", "application/json")
+
+		if input.Version == 2 {
+			json.NewEncoder(w).Encode(convertToV2(&schema))
+			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(result)
+		json.NewEncoder(w).Encode(DocResult{
+			Schema:  schema,
+			Version: 3,
+		})
 	}
 }
 
