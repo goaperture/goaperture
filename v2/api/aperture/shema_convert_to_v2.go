@@ -66,6 +66,10 @@ func getAlias(path string) (string, string) {
 	version := parts[0]
 	url := strings.Join(parts[1:], "/")
 
+	if parts[0] == "ws" {
+		version = parts[1]
+	}
+
 	for index, char := range url {
 		if index == 0 || nextUp {
 			alias += strings.ToUpper(string(char))
