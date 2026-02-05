@@ -13,8 +13,9 @@ type WebSocket struct {
 	Close         func(conn *Conn, code string, reason string)
 	IdleTimeout   int
 	PrivateAccess bool
-	Description   string
-	GetSequre     func() bool
+
+	Description string
+	GetSequre   func() bool
 
 	TopicsCollection TopicCollection
 	docs             []string

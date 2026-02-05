@@ -62,13 +62,15 @@ func getAlias(path string) (string, string) {
 	alias := ""
 	nextUp := false
 
-	parts := strings.Split(strings.TrimPrefix(path, "/"), "/")
-	version := parts[0]
-	url := strings.Join(parts[1:], "/")
+	var versionIndex = 0
 
+	parts := strings.Split(strings.TrimPrefix(path, "/"), "/")
 	if parts[0] == "ws" {
-		version = parts[1]
+		versionIndex = 1
 	}
+
+	version := parts[versionIndex]
+	url := strings.Join(parts[versionIndex+1:], "/")
 
 	for index, char := range url {
 		if index == 0 || nextUp {
