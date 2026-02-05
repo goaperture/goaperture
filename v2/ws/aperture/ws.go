@@ -8,9 +8,12 @@ type TopicCollection struct {
 }
 
 type WebSocket struct {
-	Open          func(conn *Conn)
-	Message       func(conn *Conn, message string)
-	Close         func(conn *Conn, code string, reason string)
+	Open    func(conn *Conn)
+	Message func(message string, conn *Conn)
+	Close   func(conn *Conn, code string, reason string)
+
+	OnPublish func(topic, message string, conn *Conn)
+
 	IdleTimeout   int
 	PrivateAccess bool
 

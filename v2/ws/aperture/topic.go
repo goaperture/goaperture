@@ -18,3 +18,11 @@ func (t *Topic[Message]) Publish(message Message) error {
 	t.ws.Publish(t.Name, string(data))
 	return nil
 }
+
+func CreateTopic[Message any](ws *WebSocket, Name string, OnMessage func(message Message) error) Topic[Message] {
+	return Topic[Message]{
+		ws,
+		Name,
+		OnMessage,
+	}
+}

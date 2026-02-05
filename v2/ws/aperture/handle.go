@@ -2,6 +2,7 @@ package aperture
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net/http"
 	"time"
@@ -11,6 +12,12 @@ import (
 	"github.com/goaperture/goaperture/v2/api/client"
 	"github.com/goaperture/goaperture/v2/exception"
 )
+
+type SocketData struct {
+	Message   string   `json:"message"`
+	Subscribe []string `json:"subscribe,omitempty"`
+	Topic     string   `json:"topic,omitempty"`
+}
 
 func Handle(ws *WebSocket) SocketSwitch {
 	isSequre := false
@@ -83,8 +90,23 @@ func Handle(ws *WebSocket) SocketSwitch {
 						break
 					}
 
+					var socketData SocketData
+					json.Unmarshal(data, &socketData)
+
+					if len(socketData.Subscribe) != 0 {
+						for _, topic := range socketData.Subscribe {
+							ws.Subscribe(&client, topic)
+						}
+						continue
+					}
+
+					if socketData.Topic != "" && ws.OnPublish != nil {
+						ws.OnPublish(socketData.Topic, socketData.Message, &client)
+						continue
+					}
+
 					if ws.Message != nil {
-						ws.Message(&client, string(data))
+						ws.Message(socketData.Message, &client)
 					}
 				}
 			}
