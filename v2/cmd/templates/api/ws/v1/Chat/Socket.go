@@ -8,8 +8,8 @@ import (
 
 var WsPrinter = aperture.WebSocket{
 	Description: "Просто Вебсокет",
-	Message: func(message string, conn *aperture.Conn) {
+	Message: func(message any, conn *aperture.Conn) {
 		fmt.Println(">>", message)
-		conn.Send("<answer")
+		conn.SendText("<< answer")
 	},
 }

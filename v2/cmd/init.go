@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-//go:embed _init/*
+//go:embed templates/*
 var templateFS embed.FS
 
 var initCmd = &cobra.Command{

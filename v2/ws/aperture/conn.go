@@ -28,3 +28,9 @@ func (c *Conn) Publish(topic string, message any) error {
 		Topic:   topic,
 	})
 }
+
+func (c *Conn) SendText(message string) error {
+	return c.Send(SocketData{
+		Message: message,
+	})
+}
