@@ -30,13 +30,13 @@ func convertToV2(doc *[]DocOutput) DocResultV2 {
 
 		if route.Input != nil {
 			input = map[string]any{
-				alias + "___TYPE__": route.Input,
+				alias + "Input___TYPE__": route.Input,
 			}
 		}
 
 		if route.Output != nil {
 			output = map[string]any{
-				alias + "___TYPE__": route.Output,
+				alias + "Output___TYPE__": route.Output,
 			}
 		}
 

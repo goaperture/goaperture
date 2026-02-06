@@ -22,7 +22,7 @@ func (c *Conn) Unsubscribe(topic string) error {
 	return nil
 }
 
-func (c *Conn) Publish(topic string, message string) error {
+func (c *Conn) Publish(topic string, message any) error {
 	return c.Send(SocketData{
 		Message: message,
 		Topic:   topic,

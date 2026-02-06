@@ -14,7 +14,7 @@ import (
 )
 
 type SocketData struct {
-	Message   string   `json:"message"`
+	Message   any      `json:"message"`
 	Subscribe []string `json:"subscribe,omitempty"`
 	Topic     string   `json:"topic,omitempty"`
 }
