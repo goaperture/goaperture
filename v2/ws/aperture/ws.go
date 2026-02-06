@@ -24,7 +24,7 @@ type WebSocket struct {
 	docs             []string
 }
 
-func (ws *WebSocket) Publish(topic string, messate string) {
+func (ws *WebSocket) Publish(topic string, message string) {
 	ws.TopicsCollection.mu.RLock()
 	defer ws.TopicsCollection.mu.RUnlock()
 
@@ -35,13 +35,17 @@ func (ws *WebSocket) Publish(topic string, messate string) {
 	}
 
 	for conn := range clients {
-		conn.Send(messate)
+		conn.Publish(topic, message)
 	}
 }
 
 func (ws *WebSocket) Subscribe(c *Conn, topic string) {
 	ws.TopicsCollection.mu.Lock()
 	defer ws.TopicsCollection.mu.Unlock()
+
+	if _, exists := ws.TopicsCollection.list[topic][c]; !exists {
+		ws.TopicsCollection.list[topic] = map[*Conn]struct{}{}
+	}
 
 	ws.TopicsCollection.list[topic][c] = struct{}{}
 }

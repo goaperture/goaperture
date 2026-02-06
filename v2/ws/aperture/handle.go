@@ -26,6 +26,8 @@ func Handle(ws *WebSocket) SocketSwitch {
 		isSequre = ws.GetSequre()
 	}
 
+	ws.TopicsCollection.list = make(map[string]map[*Conn]struct{})
+
 	return SocketSwitch{
 		Handler: func(secret auth.XSecret) func(w http.ResponseWriter, r *http.Request) {
 			return func(w http.ResponseWriter, r *http.Request) {
@@ -66,8 +68,10 @@ func Handle(ws *WebSocket) SocketSwitch {
 
 				var client = Conn{
 					ws: ws,
-					Send: func(message string) error {
-						return conn.Write(ctx, websocket.MessageText, []byte(message))
+					Send: func(message SocketData) error {
+						data, _ := json.Marshal(message)
+
+						return conn.Write(ctx, websocket.MessageText, data)
 					},
 				}
 

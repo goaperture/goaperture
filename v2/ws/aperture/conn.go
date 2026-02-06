@@ -2,7 +2,7 @@ package aperture
 
 type Conn struct {
 	Id     int
-	Send   func(message string) error
+	Send   func(message SocketData) error
 	topics map[string]struct{}
 
 	ws *WebSocket
@@ -23,5 +23,8 @@ func (c *Conn) Unsubscribe(topic string) error {
 }
 
 func (c *Conn) Publish(topic string, message string) error {
-	return c.Publish(topic, message)
+	return c.Send(SocketData{
+		Message: message,
+		Topic:   topic,
+	})
 }

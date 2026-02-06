@@ -36,7 +36,7 @@ func Catch(w *http.ResponseWriter) {
 			(*w).WriteHeader(v.Status.Code)
 			json.NewEncoder(*w).Encode(responce.Error(v))
 		} else {
-			log.Println("!undefined panic", r)
+			log.Println("[!undefined panic] > ", r)
 
 			(*w).WriteHeader(500)
 			json.NewEncoder(*w).Encode(responce.Error(CustomPanic{Message: fmt.Sprintf("%s", r)}))
