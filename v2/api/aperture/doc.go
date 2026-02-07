@@ -13,14 +13,15 @@ import (
 )
 
 type DocOutput struct {
-	Url         string   `json:"url"`
-	Type        string   `json:"type"`
-	Method      string   `json:"method"`
-	Input       any      `json:"inputs,omitempty"`
-	Output      any      `json:"outputs,omitempty"`
-	Errors      []string `json:"errors,omitempty"`
-	Description string   `json:"description"`
-	AccessKey   string   `json:"accessKey,omitempty"`
+	Url         string         `json:"url"`
+	Type        string         `json:"type"`
+	Method      string         `json:"method"`
+	Input       any            `json:"inputs,omitempty"`
+	Output      any            `json:"outputs,omitempty"`
+	Errors      []string       `json:"errors,omitempty"`
+	Description string         `json:"description"`
+	AccessKey   string         `json:"accessKey,omitempty"`
+	Topics      map[string]any `json:"topics,omitempty"`
 }
 
 type DocResult struct {
@@ -121,6 +122,7 @@ func getDocs(routes Routes, ws *aperture.WebSockets) []DocOutput {
 			Description: socket.Description,
 			AccessKey:   accessKey,
 			Method:      shema,
+			Topics:      socket.TopicDocs,
 		})
 	}
 

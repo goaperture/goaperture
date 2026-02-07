@@ -11,27 +11,25 @@ type TopicCollection struct {
 }
 
 type WebSocket struct {
-	Open    func(conn *Conn)
-	Message func(message any, conn *Conn)
-	Close   func(conn *Conn, code string, reason string)
-
-	OnPublish func(topic string, message any, conn *Conn)
-
+	Open          func(conn *Conn)
+	Message       func(message any, conn *Conn)
+	Close         func(conn *Conn, code string, reason string)
+	OnPublish     func(topic string, message any, conn *Conn)
 	IdleTimeout   int
 	PrivateAccess bool
+	Description   string
+	GetSequre     func() bool
 
-	Description string
-	GetSequre   func() bool
-
-	TopicsCollection TopicCollection
-	docs             []string
+	topicCollections TopicCollection
+	topicDocs        map[string]any
+	// docs             []string
 }
 
 func (ws *WebSocket) Publish(topic string, message any) {
-	ws.TopicsCollection.mu.RLock()
-	defer ws.TopicsCollection.mu.RUnlock()
+	ws.topicCollections.mu.RLock()
+	defer ws.topicCollections.mu.RUnlock()
 
-	clients, exists := ws.TopicsCollection.list[topic]
+	clients, exists := ws.topicCollections.list[topic]
 
 	if !exists {
 		return
@@ -43,21 +41,21 @@ func (ws *WebSocket) Publish(topic string, message any) {
 }
 
 func (ws *WebSocket) Subscribe(c *Conn, topic string) {
-	ws.TopicsCollection.mu.Lock()
-	defer ws.TopicsCollection.mu.Unlock()
+	ws.topicCollections.mu.Lock()
+	defer ws.topicCollections.mu.Unlock()
 
-	if _, exists := ws.TopicsCollection.list[topic]; !exists {
-		ws.TopicsCollection.list[topic] = map[*Conn]struct{}{}
+	if _, exists := ws.topicCollections.list[topic]; !exists {
+		ws.topicCollections.list[topic] = map[*Conn]struct{}{}
 	}
 
-	ws.TopicsCollection.list[topic][c] = struct{}{}
+	ws.topicCollections.list[topic][c] = struct{}{}
 
-	fmt.Println("subscribe+", topic, len(ws.TopicsCollection.list[topic]))
+	fmt.Println("subscribe+", topic, len(ws.topicCollections.list[topic]))
 }
 
 func (ws *WebSocket) Unsubscribe(c *Conn, topic string) {
-	ws.TopicsCollection.mu.Lock()
-	defer ws.TopicsCollection.mu.Unlock()
+	ws.topicCollections.mu.Lock()
+	defer ws.topicCollections.mu.Unlock()
 
-	delete(ws.TopicsCollection.list[topic], c)
+	delete(ws.topicCollections.list[topic], c)
 }

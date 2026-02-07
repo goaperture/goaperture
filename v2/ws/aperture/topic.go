@@ -4,17 +4,25 @@ import "encoding/json"
 
 type Topic[Message any] struct {
 	ws        *WebSocket
-	pefix     string
+	prefix    string
 	onPublish func(topic string, message Message) error
 	prepare   Message
 }
 
-func CreateTopic[Message any](ws *WebSocket, pefix string, onPublish func(topic string, message Message) error) Topic[Message] {
-	return Topic[Message]{
+func CreateTopic[Message any](ws *WebSocket, prefix string, onPublish func(topic string, message Message) error) Topic[Message] {
+	topic := Topic[Message]{
 		ws:        ws,
-		pefix:     pefix,
+		prefix:    prefix,
 		onPublish: onPublish,
 	}
+
+	if ws.topicDocs == nil {
+		ws.topicDocs = make(map[string]any)
+	}
+
+	ws.topicDocs[prefix] = topic.prepare
+
+	return topic
 }
 
 func (t *Topic[Message]) Publish(topic string, message Message) error {
@@ -24,7 +32,7 @@ func (t *Topic[Message]) Publish(topic string, message Message) error {
 		return err
 	}
 
-	t.ws.Publish(t.pefix+topic, string(data))
+	t.ws.Publish(t.prefix+topic, string(data))
 	return nil
 }
 
