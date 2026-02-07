@@ -2,7 +2,6 @@ package api
 
 import (
 	"github.com/goaperture/goaperture/v2/api/auth"
-	"github.com/goaperture/goaperture/v2/api/auth_rsa"
 	"github.com/goaperture/goaperture/v2/exception"
 )
 
@@ -16,10 +15,10 @@ type Payload struct {
 var Auth = auth.Auth[Payload]{
 	Login:      login,
 	GetPayload: getPayload,
-	RSA: auth.RSA{
-		Public:  auth_rsa.LoadPublicKey("./rsa/public.pem"),
-		Private: auth_rsa.LoadPrivateKey("./rsa/private.pem"),
-	},
+	// RSA: auth.RSA{
+	// 	Public:  auth_rsa.LoadPublicKey("./rsa/public.pem"),
+	// 	Private: auth_rsa.LoadPrivateKey("./rsa/private.pem"),
+	// },
 	// Secret: "SECRET-KEY-OPTION",
 }
 

@@ -15,7 +15,7 @@ type WebSocket struct {
 	Message func(message any, conn *Conn)
 	Close   func(conn *Conn, code string, reason string)
 
-	OnPublish func(topic, message any, conn *Conn)
+	OnPublish func(topic string, message any, conn *Conn)
 
 	IdleTimeout   int
 	PrivateAccess bool

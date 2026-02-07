@@ -1,7 +1,10 @@
 package main
 
-import "extra_app/api"
+import (
+	"fmt"
+)
 
 func main() {
-	api.Server.Run()
+	fmt.Printf("SERVER Run on http://localhost:%d\n", api.Server.Port)
+	api.Server.Routes(&routes.Routes).WebSockets(&ws.Routes).Run()
 }
