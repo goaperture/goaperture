@@ -42,7 +42,6 @@ func CreateTopic[Message any](ws *WebSocket, topic Topic[Message]) Topic[Message
 	return topic
 }
 
-func (t *Topic[Message]) Publish(topic string, message Message) {
-	data, _ := json.Marshal(message)
-	t.ws.Publish(t.Prefix+topic, string(data))
+func (t *Topic[Message]) Publish(suffix string, message Message) {
+	t.ws.Publish(t.Prefix+suffix, message)
 }

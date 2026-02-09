@@ -14,14 +14,14 @@ import (
 )
 
 type SocketInput struct {
-	Message   any      `json:"message"`
-	Subscribe []string `json:"subscribe,omitempty"`
-	Topic     string   `json:"topic,omitempty"`
+	Data  any    `json:"data"`
+	Type  string `json:"type,omitempty"`
+	Topic string `json:"topic,omitempty"`
 }
 
 type SocketData struct {
-	Message any    `json:"message"`
-	Topic   string `json:"topic,omitempty"`
+	Data  any    `json:"data"`
+	Topic string `json:"topic,omitempty"`
 }
 
 type WebSockets map[string]SocketSwitch
@@ -134,20 +134,18 @@ func createHandler(ws *WebSocket, isSequre bool) func(secret auth.XSecret) func(
 					continue
 				}
 
-				if len(socketData.Subscribe) != 0 {
-					for _, topic := range socketData.Subscribe {
-						ws.Subscribe(&client, topic)
-					}
+				if socketData.Type == "subscribe" {
+					ws.Subscribe(&client, socketData.Topic)
 					continue
 				}
 
 				if socketData.Topic != "" {
-					ws.handlePublish(socketData.Topic, socketData.Message, &client)
+					ws.handlePublish(socketData.Topic, socketData.Data, &client)
 					continue
 				}
 
 				if ws.Message != nil {
-					ws.Message(socketData.Message, &client)
+					ws.Message(socketData.Data, &client)
 				}
 			}
 		}

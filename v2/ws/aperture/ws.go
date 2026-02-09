@@ -28,15 +28,14 @@ func (ws *WebSocket) Publish(topic string, message any) {
 	ws.topicCollections.mu.RLock()
 	defer ws.topicCollections.mu.RUnlock()
 
-	clients, exists := ws.topicCollections.list[topic]
-
-	if !exists {
-		return
+	for prefix, clients := range ws.topicCollections.list {
+		if strings.HasPrefix(topic, prefix) {
+			for conn := range clients {
+				conn.Publish(topic, message)
+			}
+		}
 	}
 
-	for conn := range clients {
-		conn.Publish(topic, message)
-	}
 }
 
 func (ws *WebSocket) Subscribe(c *Conn, topic string) {

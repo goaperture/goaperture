@@ -24,13 +24,13 @@ func (c *Conn) Unsubscribe(topic string) error {
 
 func (c *Conn) Publish(topic string, message any) {
 	c.Send(SocketData{
-		Message: message,
-		Topic:   topic,
+		Data:  message,
+		Topic: topic,
 	})
 }
 
 func (c *Conn) SendText(message string) {
 	c.Send(SocketData{
-		Message: message,
+		Data: message,
 	})
 }
