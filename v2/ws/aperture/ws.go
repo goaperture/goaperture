@@ -2,6 +2,7 @@ package aperture
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 )
 
@@ -11,18 +12,16 @@ type TopicCollection struct {
 }
 
 type WebSocket struct {
-	Open          func(conn *Conn)
-	Message       func(message any, conn *Conn)
-	Close         func(conn *Conn, code string, reason string)
-	OnPublish     func(topic string, message any, conn *Conn)
-	IdleTimeout   int
-	PrivateAccess bool
-	Description   string
-	GetSequre     func() bool
-
+	Open             func(conn *Conn)
+	Message          func(message any, conn *Conn)
+	Close            func(conn *Conn, code string, reason string)
+	OnPublish        func(topic string, message any, conn *Conn) bool
+	IdleTimeout      int
+	PrivateAccess    bool
+	Description      string
+	GetSequre        func() bool
 	topicCollections TopicCollection
-	topicDocs        map[string]any
-	// docs             []string
+	jsonTopics       map[string]jsonTopic
 }
 
 func (ws *WebSocket) Publish(topic string, message any) {
@@ -58,4 +57,48 @@ func (ws *WebSocket) Unsubscribe(c *Conn, topic string) {
 	defer ws.topicCollections.mu.Unlock()
 
 	delete(ws.topicCollections.list[topic], c)
+
+	fmt.Println("unsubscribe-", topic, len(ws.topicCollections.list[topic]))
+}
+
+func (ws *WebSocket) handlePublish(topic string, message any, client *Conn) {
+	var sendToClient = true
+	if ws.OnPublish != nil {
+		if !ws.OnPublish(topic, message, client) {
+			sendToClient = false
+		}
+	}
+
+	for prefix, jsonTopic := range ws.jsonTopics {
+		if strings.HasPrefix(topic, prefix) {
+			if !jsonTopic.handle(topic, message) {
+				sendToClient = false
+			}
+		}
+	}
+
+	if !sendToClient {
+		return
+	}
+
+	// Отправляем реальным клиентам
+	for prefix, connections := range ws.topicCollections.list {
+		if strings.HasPrefix(topic, prefix) {
+			for conn := range connections {
+				if conn != client {
+					conn.Publish(topic, message)
+				}
+			}
+		}
+	}
+}
+
+func (ws *WebSocket) getTopicDocs() map[string]any {
+	var result = make(map[string]any)
+
+	for prefix, jsonTopic := range ws.jsonTopics {
+		result[prefix] = jsonTopic.prepare
+	}
+
+	return result
 }

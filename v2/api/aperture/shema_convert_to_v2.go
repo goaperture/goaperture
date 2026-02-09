@@ -3,15 +3,16 @@ package aperture
 import "strings"
 
 type DocOutputV2 struct {
-	Url         string   `json:"url"`
-	Version     string   `json:"version"`
-	Alias       string   `json:"alias"`
-	Method      string   `json:"method"`
-	Input       any      `json:"inputType"`
-	Output      any      `json:"outputType"`
-	Pathprops   []string `json:"pathProps"`
-	Exceptions  []string `json:"exceptions"`
-	Description string   `json:"description"`
+	Url         string         `json:"url"`
+	Version     string         `json:"version"`
+	Alias       string         `json:"alias"`
+	Method      string         `json:"method"`
+	Input       any            `json:"inputType"`
+	Output      any            `json:"outputType"`
+	Pathprops   []string       `json:"pathProps"`
+	Exceptions  []string       `json:"exceptions"`
+	Description string         `json:"description"`
+	Topics      map[string]any `json:"topics,omitempty"`
 }
 
 type DocResultV2 struct {
@@ -32,6 +33,13 @@ func convertToV2(doc *[]DocOutput) DocResultV2 {
 			input = map[string]any{
 				alias + "Input___TYPE__": route.Input,
 			}
+
+		}
+
+		if route.Method == "ws" {
+			input = map[string]any{
+				alias + "Topic___TYPE__": route.TopicDocs,
+			}
 		}
 
 		if route.Output != nil {
@@ -49,6 +57,7 @@ func convertToV2(doc *[]DocOutput) DocResultV2 {
 			Output:      output,
 			Exceptions:  route.Errors,
 			Description: route.Description,
+			Topics:      route.TopicDocs,
 		})
 	}
 

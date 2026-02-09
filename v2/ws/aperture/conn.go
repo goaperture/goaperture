@@ -22,15 +22,15 @@ func (c *Conn) Unsubscribe(topic string) error {
 	return nil
 }
 
-func (c *Conn) Publish(topic string, message any) error {
-	return c.Send(SocketData{
+func (c *Conn) Publish(topic string, message any) {
+	c.Send(SocketData{
 		Message: message,
 		Topic:   topic,
 	})
 }
 
-func (c *Conn) SendText(message string) error {
-	return c.Send(SocketData{
+func (c *Conn) SendText(message string) {
+	c.Send(SocketData{
 		Message: message,
 	})
 }

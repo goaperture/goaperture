@@ -21,7 +21,7 @@ type DocOutput struct {
 	Errors      []string       `json:"errors,omitempty"`
 	Description string         `json:"description"`
 	AccessKey   string         `json:"accessKey,omitempty"`
-	Topics      map[string]any `json:"topics,omitempty"`
+	TopicDocs   map[string]any `json:"topics,omitempty"`
 }
 
 type DocResult struct {
@@ -122,7 +122,7 @@ func getDocs(routes Routes, ws *aperture.WebSockets) []DocOutput {
 			Description: socket.Description,
 			AccessKey:   accessKey,
 			Method:      shema,
-			Topics:      socket.TopicDocs,
+			TopicDocs:   socket.TopicDocs,
 		})
 	}
 

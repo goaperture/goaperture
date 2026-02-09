@@ -54,7 +54,7 @@ func Handle(ws *WebSocket) SocketSwitch {
 		PrivateAccess: ws.PrivateAccess,
 		Description:   ws.Description,
 		Sequre:        isSequre,
-		TopicDocs:     ws.topicDocs,
+		TopicDocs:     ws.getTopicDocs(),
 	}
 }
 
@@ -118,14 +118,21 @@ func createHandler(ws *WebSocket, isSequre bool) func(secret auth.XSecret) func(
 			}
 
 			for {
-				_, data, err := conn.Read(ctx)
+				messageType, data, err := conn.Read(ctx)
 				if err != nil {
 					log.Println("Ошибка чтения:", err)
 					break
 				}
 
+				if messageType != websocket.MessageText {
+					continue
+				}
+
 				var socketData SocketInput
-				json.Unmarshal(data, &socketData)
+				err = json.Unmarshal(data, &socketData)
+				if err != nil {
+					continue
+				}
 
 				if len(socketData.Subscribe) != 0 {
 					for _, topic := range socketData.Subscribe {
@@ -134,8 +141,8 @@ func createHandler(ws *WebSocket, isSequre bool) func(secret auth.XSecret) func(
 					continue
 				}
 
-				if socketData.Topic != "" && ws.OnPublish != nil {
-					ws.OnPublish(socketData.Topic, socketData.Message, &client)
+				if socketData.Topic != "" {
+					ws.handlePublish(socketData.Topic, socketData.Message, &client)
 					continue
 				}
 
