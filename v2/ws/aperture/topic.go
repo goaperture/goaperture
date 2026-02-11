@@ -1,19 +1,26 @@
 package aperture
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/goaperture/goaperture/v2/api/collector"
+)
+
+type CL[Message any] = collector.Collector[Message, Message]
 
 type Topic[Message any] struct {
-	ws        *WebSocket
-	Prefix    string
-	OnPublish func(topic string, message Message) bool
-	onJoin    func(topic string)
-	onLeave   func(topic string, reasone string)
-	prepare   Message
+	ws              *WebSocket
+	Prefix          string
+	OnPublish       func(topic string, message Message) bool
+	onJoin          func(topic string)
+	onLeave         func(topic string, reasone string)
+	prepareDataItem Message
+	Prepare         func(collector *CL[Message])
 }
 
 type jsonTopic struct {
-	prepare any
-	handle  func(topic string, message any) bool
+	PrepareCall func() any
+	handle      func(topic string, message any) bool
 }
 
 func CreateTopic[Message any](ws *WebSocket, topic Topic[Message]) Topic[Message] {
@@ -24,7 +31,15 @@ func CreateTopic[Message any](ws *WebSocket, topic Topic[Message]) Topic[Message
 	}
 
 	ws.jsonTopics[topic.Prefix] = jsonTopic{
-		prepare: topic.prepare,
+		PrepareCall: func() any { // #TODO - типы топиков обработать нормально
+			if topic.Prepare == nil {
+				return []any{topic.prepareDataItem}
+			}
+
+			var cll = collector.Collector[Message, Message]{}
+			topic.Prepare(&cll)
+			return cll.GetDump().Outputs
+		},
 		handle: func(key string, message any) bool {
 			if topic.OnPublish == nil {
 				return true
@@ -35,7 +50,6 @@ func CreateTopic[Message any](ws *WebSocket, topic Topic[Message]) Topic[Message
 			json.Unmarshal(strMessage, &jsonMessage)
 
 			return topic.OnPublish(key, jsonMessage)
-
 		},
 	}
 

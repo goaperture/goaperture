@@ -96,7 +96,7 @@ func (ws *WebSocket) getTopicDocs() map[string]any {
 	var result = make(map[string]any)
 
 	for prefix, jsonTopic := range ws.jsonTopics {
-		result[prefix] = jsonTopic.prepare
+		result[prefix] = jsonTopic.PrepareCall()
 	}
 
 	return result
