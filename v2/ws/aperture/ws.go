@@ -31,11 +31,28 @@ func (ws *WebSocket) Publish(topic string, message any) {
 	for prefix, clients := range ws.topicCollections.list {
 		if strings.HasPrefix(topic, prefix) {
 			for conn := range clients {
-				conn.Publish(topic, message)
+				if err := conn.Publish(topic, message); err != nil {
+					delete(ws.topicCollections.list[prefix], conn)
+					fmt.Println("remove subscriber from ", prefix)
+				}
 			}
 		}
 	}
+}
 
+func (ws *WebSocket) GetTopicLen(topic string) int {
+	ws.topicCollections.mu.RLock()
+	defer ws.topicCollections.mu.RUnlock()
+
+	result := 0
+
+	for prefix, clients := range ws.topicCollections.list {
+		if strings.HasPrefix(topic, prefix) {
+			result += len(clients)
+		}
+	}
+
+	return result
 }
 
 func (ws *WebSocket) Subscribe(c *Conn, topic string) {

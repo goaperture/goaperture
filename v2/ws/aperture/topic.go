@@ -59,3 +59,7 @@ func CreateTopic[Message any](ws *WebSocket, topic Topic[Message]) Topic[Message
 func (t *Topic[Message]) Publish(suffix string, message Message) {
 	t.ws.Publish(t.Prefix+suffix, message)
 }
+
+func (t *Topic[Messge]) GetLen(suffix string) int {
+	return t.ws.GetTopicLen(t.Prefix + suffix)
+}
