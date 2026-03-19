@@ -9,5 +9,11 @@ func WithToken(ctx context.Context, token string) context.Context {
 }
 
 func GetToken(ctx context.Context) *string {
-	return ctx.Value(tokenkey{}).(*string)
+	TOKEN := ctx.Value(tokenkey{})
+
+	if TOKEN == nil {
+		return nil
+	}
+
+	return TOKEN.(*string)
 }
