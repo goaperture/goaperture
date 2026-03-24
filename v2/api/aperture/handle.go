@@ -30,7 +30,8 @@ func Handle[I Input, O Output](route *Route[I, O]) Switch {
 					payload.Permissions.CheckX(accessKey)
 				}
 
-				ctx := r.Context()
+				ctx := client.WithRequest(r.Context(), r)
+
 				if exists {
 					ctx = client.WithToken(ctx, jwt)
 				}
