@@ -12,13 +12,14 @@ import (
 type Payload any
 
 type Api[P Payload] struct {
-	Port       int
-	routes     Routes
-	Token      string
-	ws         *ws.WebSockets
-	Auth       *auth.Auth[P]
-	middleware *func(next http.Handler) http.Handler
-	Metrics    bool
+	Port         int
+	routes       Routes
+	Token        string
+	AccessPrefix string
+	ws           *ws.WebSockets
+	Auth         *auth.Auth[P]
+	middleware   *func(next http.Handler) http.Handler
+	Metrics      bool
 }
 
 func (a *Api[P]) Run() error {
@@ -30,7 +31,7 @@ func (a *Api[P]) Run() error {
 	}
 
 	for path, route := range a.routes {
-		server.HandleFunc(path, route.Handler(secret))
+		server.HandleFunc(path, route.Handler(secret, a.AccessPrefix))
 	}
 
 	if a.Auth != nil {
@@ -38,7 +39,7 @@ func (a *Api[P]) Run() error {
 	}
 
 	if a.ws != nil {
-		a.ws.BindHanders(server, secret)
+		a.ws.BindHanders(server, secret, a.AccessPrefix)
 	}
 
 	if a.Metrics {

@@ -27,16 +27,16 @@ type SocketData struct {
 type WebSockets map[string]SocketSwitch
 
 type SocketSwitch struct {
-	Handler       func(secret auth.XSecret) func(w http.ResponseWriter, r *http.Request)
+	Handler       func(secret auth.XSecret, accessPrefix string) func(w http.ResponseWriter, r *http.Request)
 	PrivateAccess bool
 	Description   string
 	Sequre        bool
 	TopicDocs     map[string]any
 }
 
-func (ws *WebSockets) BindHanders(server *http.ServeMux, secret auth.XSecret) {
+func (ws *WebSockets) BindHanders(server *http.ServeMux, secret auth.XSecret, accessPrefix string) {
 	for path, route := range *ws {
-		server.HandleFunc(path, route.Handler(secret))
+		server.HandleFunc(path, route.Handler(secret, accessPrefix))
 	}
 }
 
@@ -58,15 +58,15 @@ func Handle(ws *WebSocket) SocketSwitch {
 	}
 }
 
-func createHandler(ws *WebSocket, isSequre bool) func(secret auth.XSecret) func(w http.ResponseWriter, r *http.Request) {
-	return func(secret auth.XSecret) func(w http.ResponseWriter, r *http.Request) {
+func createHandler(ws *WebSocket, isSequre bool) func(secret auth.XSecret, accessPrefix string) func(w http.ResponseWriter, r *http.Request) {
+	return func(secret auth.XSecret, accessPrefix string) func(w http.ResponseWriter, r *http.Request) {
 		return func(w http.ResponseWriter, r *http.Request) {
 			defer exception.Catch(&w)
 
 			jwt, exists := auth.ParseAccessToken(r)
 
 			if ws.PrivateAccess {
-				accessKey := auth.GetAccessKeyFromUrl(r.Pattern)
+				accessKey := auth.GetAccessKeyFromUrl(r.Pattern, accessPrefix)
 				if !exists {
 					exception.NotAccess(accessKey)
 				}

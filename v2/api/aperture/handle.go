@@ -14,14 +14,14 @@ import (
 
 func Handle[I Input, O Output](route *Route[I, O]) Switch {
 	return Switch{
-		Handler: func(secret auth.XSecret) func(w http.ResponseWriter, r *http.Request) {
+		Handler: func(secret auth.XSecret, accessPrefix string) func(w http.ResponseWriter, r *http.Request) {
 			return func(w http.ResponseWriter, r *http.Request) {
 				defer exception.Catch(&w)
 
 				jwt, exists := auth.ParseAccessToken(r)
 
 				if route.PrivateAccess {
-					accessKey := auth.GetAccessKeyFromUrl(r.Pattern)
+					accessKey := auth.GetAccessKeyFromUrl(r.Pattern, accessPrefix)
 					if !exists {
 						exception.NotAccess(accessKey)
 					}

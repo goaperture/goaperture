@@ -51,7 +51,7 @@ func docHandle[P Payload](api *Api[P]) RouteHandler {
 			return
 		}
 
-		schema := getDocs(api.routes, api.ws)
+		schema := getDocs(api.routes, api.ws, api.AccessPrefix)
 
 		if api.Auth != nil {
 			schema = append(schema, getAuthDocs()...)
@@ -71,7 +71,7 @@ func docHandle[P Payload](api *Api[P]) RouteHandler {
 	}
 }
 
-func getDocs(routes Routes, ws *aperture.WebSockets) []DocOutput {
+func getDocs(routes Routes, ws *aperture.WebSockets, accessPrefix string) []DocOutput {
 	var result = []DocOutput{}
 
 	for path, route := range routes {
@@ -80,7 +80,7 @@ func getDocs(routes Routes, ws *aperture.WebSockets) []DocOutput {
 		var accessKey string
 
 		if route.PrivateAccess {
-			accessKey = auth.GetAccessKeyFromUrl(path)
+			accessKey = auth.GetAccessKeyFromUrl(path, accessPrefix)
 		}
 
 		var method = "post"
@@ -108,7 +108,7 @@ func getDocs(routes Routes, ws *aperture.WebSockets) []DocOutput {
 		var accessKey string
 
 		if socket.PrivateAccess {
-			accessKey = auth.GetAccessKeyFromUrl(path)
+			accessKey = auth.GetAccessKeyFromUrl(path, accessPrefix)
 		}
 
 		shema := "ws"

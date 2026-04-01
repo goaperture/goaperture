@@ -8,7 +8,7 @@ import (
 )
 
 type Switch struct {
-	Handler       func(secret auth.XSecret) func(w http.ResponseWriter, r *http.Request)
+	Handler       func(secret auth.XSecret, accessPrefix string) func(w http.ResponseWriter, r *http.Request)
 	DirectCall    func(input any) any
 	PrepareCall   func() collector.RouteDump
 	PrivateAccess bool
