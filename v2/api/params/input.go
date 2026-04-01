@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"reflect"
 	"strconv"
+	"strings"
 )
 
 func GetInput[I any](r *http.Request) I {
@@ -23,11 +24,38 @@ func GetInput[I any](r *http.Request) I {
 
 func toStruct[I any](values url.Values, to *I) {
 	ref := reflect.ValueOf(to).Elem()
+	t := ref.Type()
 
 	for i := 0; i < ref.NumField(); i++ {
-		key := ref.Type().Field(i).Name
-		value := values.Get(ref.Type().Field(i).Tag.Get("json"))
-		setField(to, key, value)
+		field := t.Field(i)
+		fieldVal := ref.Field(i)
+
+		// Берем имя из тега json (игнорируя параметры вроде ,string)
+		tag := field.Tag.Get("json")
+		if tag == "" || tag == "-" {
+			continue
+		}
+		cleanTag := strings.Split(tag, ",")[0]
+
+		val := values.Get(cleanTag)
+		if val == "" {
+			continue
+		}
+
+		// Логика конвертации
+		switch fieldVal.Kind() {
+		case reflect.String:
+			fieldVal.SetString(val)
+		case reflect.Int, reflect.Int64:
+			if i, err := strconv.ParseInt(val, 10, 64); err == nil {
+				fieldVal.SetInt(i)
+			}
+		case reflect.Bool:
+			if b, err := strconv.ParseBool(val); err == nil {
+				fieldVal.SetBool(b)
+			}
+			// Добавьте другие типы по необходимости
+		}
 	}
 }
 
