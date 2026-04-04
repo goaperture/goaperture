@@ -42,7 +42,7 @@ to quickly create a Cobra application.`,
 		path, name, description := args[0], args[1], args[2]
 
 		for _, method := range methods {
-			templates.CreateRoute(path, method.Name+name, method.Description+description)
+			templates.CreateRoute(path, method.Name+name, method.Description+description, false)
 		}
 	},
 }

@@ -1,29 +1,45 @@
-/*
-Copyright © 2026 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
+	"log"
+	"os"
+
 	"github.com/goaperture/goaperture/v2/templates"
 	"github.com/spf13/cobra"
 )
 
-// addCmd represents the add command
 var addCmd = &cobra.Command{
-	Use:   "add",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Use:   "add-route",
+	Short: "Перейдите в нужную папку в выполните команду чтобы создать роут",
+	Args:  cobra.MaximumNArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		path, name, description := args[0], args[1], args[2]
-		templates.CreateRoute(path, name, description)
+		name, _ := cmd.Flags().GetString("name")
+		if len(args) > 0 {
+			name = args[0]
+		}
+		description, _ := cmd.Flags().GetString("description")
+		if len(args) > 1 {
+			description = args[1]
+		}
+
+		dir, err := os.Getwd()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		sequre, _ := cmd.Flags().GetBool("sequre")
+
+		templates.CreateRoute(dir, name, description, sequre)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(addCmd)
+
+	addCmd.Flags().StringP("name", "n", "Hello", "Название роута (обязательный первый аргумент)")
+	addCmd.Flags().StringP("description", "d", "hello world", "Описание роута (обязательный второй аргумент)")
+	addCmd.Flags().BoolP("sequre", "s", false, "Нужен доступ")
+
+	addCmd.Flags().Bool("test", false, "Вызывать метод при тестировании")
+
 }

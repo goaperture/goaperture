@@ -11,9 +11,10 @@ type FileData struct {
 	Pkg         string
 	Name        string
 	Description string
+	Sequre      bool
 }
 
-func GetRouteCode(pkg, name, description string) string {
+func GetRouteCode(pkg, name, description string, sequre bool) string {
 	var code = `package {{.Pkg}}
 	import (
 		"context"
@@ -24,6 +25,7 @@ func GetRouteCode(pkg, name, description string) string {
 	var {{.Name}} = aperture.Route[{{.Name}}Input, {{.Name}}Output]{
 		Description:   "{{.Description}}",
 		Handler:       {{.Name}}Handler,
+		{{if .Sequre}}PrivateAccess: true,{{end}}
 		Prepare: func(cl *aperture.CL[{{.Name}}Input, {{.Name}}Output]) {
 			cl.Execute({{.Name}}Input{})
 		},
@@ -38,7 +40,7 @@ func GetRouteCode(pkg, name, description string) string {
 		log.Fatal(err)
 	}
 
-	tmp.Execute(&result, FileData{pkg, name, description})
+	tmp.Execute(&result, FileData{pkg, name, description, sequre})
 
 	formatted, err := format.Source([]byte(result.String()))
 	if err != nil {
