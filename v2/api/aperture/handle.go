@@ -31,6 +31,7 @@ func Handle[I Input, O Output](route *Route[I, O]) Switch {
 				}
 
 				ctx := client.WithRequest(r.Context(), r)
+				ctx = client.WithPagination(ctx)
 
 				if exists {
 					ctx = client.WithToken(ctx, jwt)
@@ -41,11 +42,16 @@ func Handle[I Input, O Output](route *Route[I, O]) Switch {
 				var data = route.Handler(ctx, input)
 
 				w.Header().Set("Content-Type", "application/json")
+
+				pagination := client.GetPagination(ctx).Export()
+
 				result := Responce{
-					Data: data,
+					Data:       data,
+					Pagination: pagination,
 				}
 
 				json.NewEncoder(w).Encode(result)
+
 			}
 		},
 		DirectCall: func(input any) any {

@@ -4,6 +4,12 @@ type SuccessType struct {
 	Success bool `json:"success"`
 }
 
+type Pagination struct {
+	Page  int `json:"page"`
+	Size  int `json:"size"`
+	Total int `json:"total"`
+}
+
 type Responce struct {
 	Data     any    `json:"data,omitempty"`
 	Redirect string `json:"redirect,omitempty"`
