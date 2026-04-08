@@ -13,15 +13,16 @@ import (
 )
 
 type DocOutput struct {
-	Url         string         `json:"url"`
-	Type        string         `json:"type"`
-	Method      string         `json:"method"`
-	Input       any            `json:"inputs,omitempty"`
-	Output      any            `json:"outputs,omitempty"`
-	Errors      []string       `json:"errors,omitempty"`
-	Description string         `json:"description"`
-	AccessKey   string         `json:"accessKey,omitempty"`
-	TopicDocs   map[string]any `json:"topics,omitempty"`
+	Url            string         `json:"url"`
+	Type           string         `json:"type"`
+	Method         string         `json:"method"`
+	Input          any            `json:"inputs,omitempty"`
+	Output         any            `json:"outputs,omitempty"`
+	Errors         []string       `json:"errors,omitempty"`
+	Description    string         `json:"description"`
+	AccessKey      string         `json:"accessKey,omitempty"`
+	TopicDocs      map[string]any `json:"topics,omitempty"`
+	WithPagination bool           `json:"pagination,omitempty"`
 }
 
 type DocResult struct {
@@ -89,14 +90,15 @@ func getDocs(routes Routes, ws *aperture.WebSockets, accessPrefix string) []DocO
 		}
 
 		result = append(result, DocOutput{
-			Url:         path,
-			Type:        "rest",
-			Input:       dump.Inputs,
-			Output:      dump.Outputs,
-			Errors:      dump.Errors,
-			Description: route.Description,
-			AccessKey:   accessKey,
-			Method:      method,
+			Url:            path,
+			Type:           "rest",
+			Input:          dump.Inputs,
+			Output:         dump.Outputs,
+			Errors:         dump.Errors,
+			Description:    route.Description,
+			AccessKey:      accessKey,
+			Method:         method,
+			WithPagination: dump.WithPagination,
 		})
 	}
 

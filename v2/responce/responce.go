@@ -11,9 +11,10 @@ type Pagination struct {
 }
 
 type Responce struct {
-	Data     any    `json:"data,omitempty"`
-	Redirect string `json:"redirect,omitempty"`
-	Error    any    `json:"error,omitempty"`
+	Data       any        `json:"data,omitempty"`
+	Redirect   string     `json:"redirect,omitempty"`
+	Error      any        `json:"error,omitempty"`
+	Pagination Pagination `json:"pagination,omitempty"`
 }
 
 func Success(status bool) Responce {

@@ -1,6 +1,10 @@
 package aperture
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/goaperture/goaperture/v2/responce"
+)
 
 type DocOutputV2 struct {
 	Url         string         `json:"url"`
@@ -43,8 +47,14 @@ func convertToV2(doc *[]DocOutput) DocResultV2 {
 		}
 
 		if route.Output != nil {
-			output = map[string]any{
-				alias + "Output___TYPE__": route.Output,
+			if route.WithPagination {
+				output = map[string][]responce.Responce{
+					alias + "Output___TYPE__": getOutputWithPagination(route.Output),
+				}
+			} else {
+				output = map[string]any{
+					alias + "Output___TYPE__": route.Output,
+				}
 			}
 		}
 
@@ -65,6 +75,21 @@ func convertToV2(doc *[]DocOutput) DocResultV2 {
 		Schema:  schema,
 		Version: 2,
 	}
+}
+
+func getOutputWithPagination(output any) []responce.Responce {
+	var result []responce.Responce
+
+	if array, ok := output.([]any); ok {
+		for _, val := range array {
+			result = append(result, responce.Responce{
+				Data:       val,
+				Pagination: responce.Pagination{},
+			})
+		}
+	}
+
+	return result
 }
 
 func getAlias(path string) (string, string) {

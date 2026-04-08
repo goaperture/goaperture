@@ -3,15 +3,18 @@ package collector
 import (
 	"context"
 	"fmt"
+
+	"github.com/goaperture/goaperture/v2/api/client"
 )
 
 type Collector[I any, O any] struct {
-	Method      string
-	Description string
-	Handler     func(context.Context, I) O
-	Inputs      []I
-	Outputs     []any
-	Errors      []string
+	Method         string
+	Description    string
+	Handler        func(context.Context, I) O
+	Inputs         []I
+	Outputs        []any
+	Errors         []string
+	WithPagination bool
 }
 
 func (c *Collector[I, O]) Execute(input I) *Collector[I, O] {
@@ -21,9 +24,12 @@ func (c *Collector[I, O]) Execute(input I) *Collector[I, O] {
 		}
 	}()
 
+	ctx := client.WithPagination(context.Background())
+
 	c.Inputs = append(c.Inputs, input)
-	output := c.Handler(context.Background(), input)
+	output := c.Handler(ctx, input)
 	c.Outputs = append(c.Outputs, output)
+	c.WithPagination = client.GetPagination(ctx).Use
 
 	return c
 }
@@ -51,21 +57,23 @@ func (c *Collector[I, O]) ExpectArray(output any) *Collector[I, O] {
 //
 
 type RouteDump struct {
-	Method      string
-	Description string
-	AccessKey   string
-	Inputs      []any
-	Outputs     []any
-	Errors      []string
+	Method         string
+	Description    string
+	AccessKey      string
+	Inputs         []any
+	Outputs        []any
+	Errors         []string
+	WithPagination bool
 }
 
 func (c *Collector[I, O]) GetDump() RouteDump {
 	return RouteDump{
-		Method:      c.Method,
-		Description: c.Description,
-		Inputs:      convertToAny(c.Inputs),
-		Outputs:     convertToAny(c.Outputs),
-		Errors:      c.Errors,
+		Method:         c.Method,
+		Description:    c.Description,
+		Inputs:         convertToAny(c.Inputs),
+		Outputs:        convertToAny(c.Outputs),
+		Errors:         c.Errors,
+		WithPagination: c.WithPagination,
 	}
 }
 
