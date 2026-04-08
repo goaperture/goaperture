@@ -47,14 +47,8 @@ func convertToV2(doc *[]DocOutput) DocResultV2 {
 		}
 
 		if route.Output != nil {
-			if route.WithPagination {
-				output = map[string][]responce.Responce{
-					alias + "Output___TYPE__": getOutputWithPagination(route.Output),
-				}
-			} else {
-				output = map[string]any{
-					alias + "Output___TYPE__": route.Output,
-				}
+			output = map[string]any{
+				alias + "Output___TYPE__": route.Output,
 			}
 		}
 
