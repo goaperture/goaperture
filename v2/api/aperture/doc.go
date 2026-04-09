@@ -54,7 +54,7 @@ func docHandle[P Payload](api *Api[P]) RouteHandler {
 
 		schema := getDocs(api.routes, api.ws, api.AccessPrefix)
 
-		if api.Auth != nil {
+		if api.Auth.Login != nil {
 			schema = append(schema, getAuthDocs()...)
 		}
 

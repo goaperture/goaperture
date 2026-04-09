@@ -2,8 +2,6 @@ package aperture
 
 import (
 	"strings"
-
-	"github.com/goaperture/goaperture/v2/responce"
 )
 
 type DocOutputV2 struct {
@@ -37,7 +35,6 @@ func convertToV2(doc *[]DocOutput) DocResultV2 {
 			input = map[string]any{
 				alias + "Input___TYPE__": route.Input,
 			}
-
 		}
 
 		if route.Method == "ws" {
@@ -69,21 +66,6 @@ func convertToV2(doc *[]DocOutput) DocResultV2 {
 		Schema:  schema,
 		Version: 2,
 	}
-}
-
-func getOutputWithPagination(output any) []responce.Responce {
-	var result []responce.Responce
-
-	if array, ok := output.([]any); ok {
-		for _, val := range array {
-			result = append(result, responce.Responce{
-				Data:       val,
-				Pagination: responce.Pagination{},
-			})
-		}
-	}
-
-	return result
 }
 
 func getAlias(path string) (string, string) {

@@ -24,6 +24,9 @@ var entTemplateExport = &cobra.Command{
 
 		paginationCode := `
 {{ define "import/additional" }}
+    {{- if hasField $ "Config" }}
+        stdsql "database/sql"
+    {{- end }}
 	"github.com/goaperture/goaperture/v2/api/client"
 	"github.com/goaperture/goaperture/v2/responce"
 {{ end }}
