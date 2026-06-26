@@ -31,6 +31,7 @@ func Handle[I Input, O Output](route *Route[I, O]) Switch {
 				}
 
 				ctx := client.WithRequest(r.Context(), r)
+				ctx = client.WithResponce(ctx, &w)
 				ctx = client.WithPagination(ctx)
 
 				if exists {

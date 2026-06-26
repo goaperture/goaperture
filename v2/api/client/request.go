@@ -18,3 +18,17 @@ func GetRequest(ctx context.Context) *http.Request {
 	}
 	return nil
 }
+
+type responcekey struct{}
+
+func WithResponce(ctx context.Context, responce *http.ResponseWriter) context.Context {
+	return context.WithValue(ctx, responcekey{}, responce)
+}
+
+func GetResponce(ctx context.Context) *http.ResponseWriter {
+	val := ctx.Value(responcekey{})
+	if req, ok := val.(*http.ResponseWriter); ok {
+		return req
+	}
+	return nil
+}
