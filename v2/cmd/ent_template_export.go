@@ -23,7 +23,7 @@ var entTemplateExport = &cobra.Command{
 		fmt.Println(dir, imprt)
 
 		paginationCode := `
-{{ define "import/additional" }}
+{{ define "import/additional/client_dependencies" }}
     {{- if hasField $ "Config" }}
         stdsql "database/sql"
     {{- end }}
@@ -61,6 +61,8 @@ func (q *{{ $.Name }}Query) Paginate(ctx context.Context, page, size int) *{{ $.
 
 		fmt.Println("Отлично - теперь можно добавить в файл `generate.go`")
 		fmt.Printf("--template ./%s\n\n\n", imprt)
+		fmt.Printf("или")
+		fmt.Printf("--template ./%s --feature sql/execquery,sql/upsert\n\n\n", imprt)
 	},
 }
 
