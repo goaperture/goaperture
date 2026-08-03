@@ -37,11 +37,13 @@ a2 init ./myproj  # Инициализация в указанной дирек�
 ```
 
 Создаёт:
+
 - Шаблоны сервера (`api/server.go`)
 - Шаблоны аутентификации (`api/auth.go`)
 - Примеры роутов (`api/routes/v1/Hello/`)
 
 После инициализации выполните:
+
 ```bash
 cd .
 go mod init app
@@ -72,11 +74,13 @@ a2 add-route -n <NAME> -d <DESCRIPTION> [-s]
 ```
 
 Параметры:
+
 - `-n, --name` — Название роута (обязательный)
 - `-d, --description` — Описание эндпоинта (обязательный)
 - `-s, --sequre` — Создать защищённый роут (требует авторизации)
 
 Пример:
+
 ```bash
 cd api/routes/v1/Hello
 a2 add-route GetUser "Получить пользователя по ID"
@@ -95,6 +99,7 @@ a2 install-skill
 ```
 
 Опции:
+
 - `-n, --name` — Название скилла для установки (по умолчанию: a2)
 
 ## Структура проекта
@@ -121,11 +126,13 @@ project/
 ### Создание роута
 
 1. Перейди в папку с версиями (например `api/routes/v1/`):
+
    ```bash
    cd api/routes/v1/Hello
    ```
 
 2. Добавь новый роут:
+
    ```bash
    a2 add-route MyRoute "Описание роута"
    ```
@@ -135,7 +142,7 @@ project/
    a2 generate
    ```
 
-### Защищённые роуты
+### Защищённые роуты (приватные)
 
 Добавь флаг `--sequre` для роутов, требующих авторизации:
 
@@ -144,6 +151,77 @@ a2 add-route AdminRoute "Админская функция" --sequre
 ```
 
 Права доступа проверяются через `auth.Permissions` в `Payload`.
+
+#### Приватный доступ вручную (`PrivateAccess: true`)
+
+Чтобы сделать роут приватным (требует авторизации), задай поле `PrivateAccess: true` в описании роута:
+
+```go
+var AdminPanel = aperture.Route[AdminPanelInput, AdminPanelOutput]{
+	Description:   "Админ панель",
+	PrivateAccess: true, // <- роут требует авторизацию
+	Handler:       AdminPanelHandler,
+}
+```
+
+Поле `PrivateAccess bool` — часть структуры `aperture.Route` (и `aperture.Switch` для WebSocket). При `PrivateAccess: true` фреймворк:
+
+- проверяет авторизацию перед вызовом хендлера (см. `api/auth.go`);
+- блокирует доступ без валидного токена/прав;
+- права проверяются через `auth.Permissions` в `Payload`.
+
+То же поле используется для приватных WebSocket-эндпоинтов в `api/ws/...`.
+
+## Пагинация с ent ORM
+
+GoAperture имеет встроенную поддержку пагинации для ent ORM. Ответ автоматически получает мета-данные `pagination` (`page`, `size`, `total`).
+
+### Установка дополнения `ent-templates-export`
+
+1. Перейди в папку проекта (где лежит `generate.go` для ent) и выполни:
+
+   ```bash
+   a2 ent-templates-export
+   ```
+
+   Команда создаст файл `pagination.tmpl` с шаблонами, которые добавляют метод `Paginate` к ent-запросам, а также импорты `api/client` и `responce`.
+
+2. Добавь шаблон в `generate.go`:
+
+   ```bash
+   # в директиве //go:generate entc generate ...
+   --template ./<имя_папки>/
+
+   # например
+   --template ./ent
+   ```
+
+   При необходимости добавь фичи sql:
+
+   ```bash
+   --template ./<имя_папки>/ --feature sql/execquery,sql/upsert
+   ```
+
+3. Перегенерируй ent-код.
+
+### Использование `Paginate` в хендлере
+
+Метод `Paginate(ctx, page, size)` добавляет к запросу `LIMIT`/`OFFSET`, считает общее количество записей и кладёт результат в контекст через `client.SetPagination`. Пагинация попадёт в ответ автоматически — фреймворк вызывает `client.WithPagination(ctx)` для каждого роута перед вызовом хендлера.
+
+Минималистичный хендлер для получения списка заказов с пагинацией:
+
+```go
+func GetOrdersHandler(ctx context.Context, input GetOrdersInput) GetOrdersOutput {
+	orders := db.Client.Order.Query().Paginate(ctx, input.Page, 10).AllX(ctx)
+	return orders
+}
+```
+
+Где:
+
+- `input.Page` — номер страницы из входных данных роута;
+- `10` — размер страницы;
+- `db.Client` — клиент ent-базы данных из проекта.
 
 ## Полезные комбинации
 
@@ -170,56 +248,16 @@ a2 install-skill
 2. Названия роутов должны быть в CamelCase
 3. Описания на русском языке
 4. Защищённые роуты требуют наличия пользователя с правами доступа
+5. Для приватного доступа укажи `PrivateAccess: true` в описании роута
+6. Для пагинации с ent ORM используй `a2 ent-templates-export` и метод `Paginate`
 
 ## Установка скилла на другой компьютер
 
-### Встроенный способ (через pi)
-
-Скилл доступен как embed-ресурс в проекте. Используйте в другом проекте через settings.json:
-
-```json
-{
-  "skills": ["./skills/a2"]
-}
-```
-
-### Автоматическая установка
+### Автоматическая установка скила
 
 ```bash
 # Установка скилла в глобальную директорию
 a2 install-skill
 
 # Создаст ~/.agents/skills/a2 и скопирует туда файлы
-```
-
-### Ручная установка
-
-```bash
-# Скопировать скилл в глобальную директорию
-mkdir -p ~/.agents/skills/a2
-cp -r /path/to/project/skills/a2/* ~/.agents/skills/a2/
-```
-
-## Embed информация
-
-Этот скилл может быть встроен (embed) в другие проекты:
-- Каталог: `skills/a2`
-- Основной файл: `SKILL.md`
-- Скрипты: `scripts/new-route.sh`
-- Справка: `references/quick-ref.md`
-
-Для встраивания в Go проект используйте:
-
-```go
-//go:embed skills/a2/*
-var skillFS embed.FS
-```
-
-## Проверка установки
-
-```bash
-ls ~/.agents/skills/a2/
-# SKILL.md
-# scripts/new-route.sh
-# references/quick-ref.md
 ```
