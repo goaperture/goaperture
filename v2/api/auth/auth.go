@@ -29,7 +29,7 @@ func (a *Auth[Payload]) createRefreshToken(w *http.ResponseWriter, id ID) {
 	http.SetCookie(*w, &http.Cookie{
 		Name:     refreshCookieKey,
 		Value:    token,
-		Path:     auth_paths.REFRESH,
+		Path:     a.prefix + auth_paths.REFRESH,
 		Expires:  expires,
 		HttpOnly: true,
 		Secure:   a.Sequre,

@@ -13,6 +13,7 @@ type Payload any
 
 type Api[P Payload] struct {
 	Port         int
+	Prefix       string
 	routes       Routes
 	Token        string
 	AccessPrefix string
@@ -35,6 +36,7 @@ func (a *Api[P]) Run() error {
 	}
 
 	if a.Auth != nil {
+		a.Auth.SetPrefix(a.Prefix)
 		a.Auth.BindHanders(server)
 	}
 
