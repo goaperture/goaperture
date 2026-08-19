@@ -172,6 +172,93 @@ var AdminPanel = aperture.Route[AdminPanelInput, AdminPanelOutput]{
 
 То же поле используется для приватных WebSocket-эндпоинтов в `api/ws/...`.
 
+## Хук `Prepare` и коллектор `CL`
+
+Помимо `Handler` и `PrivateAccess`, структура `aperture.Route[I, O]` имеет поле `Prepare` — это опциональная функция-хук, которая **не выполняется во время HTTP-запроса**. Она нужна для сбора примеров входных/выходных данных при генерации документации или схемы API.
+
+### Сигнатура
+
+```go
+type Prepare[P Input, O Output] = func(collector *CL[P, O])
+type CL[P Input, O Output] = collector.Collector[P, O]
+```
+
+### Где вызывается
+
+В `aperture.Handle()` при оборачивании роута создаётся `Switch` с полем `PrepareCall: func() collector.RouteDump`. При вызове `PrepareCall`:
+
+1. создаётся пустой `Collector` с `Handler` роута;
+2. вызывается `route.Prepare(&cll)`;
+3. в конце возвращается `RouteDump` со всеми собранными данными (метод, описание, inputs, outputs, errors, флаг пагинации).
+
+Видно в `api/aperture/doc.go`: `dump := route.PrepareCall()`.
+
+### Методы коллектора `CL[I, O]`
+
+Внутри `Prepare` доступен коллектор с методами:
+
+| Метод | Что делает |
+|-------|-----------|
+| `Execute(input I) *CL` | Реальный прогон хендлера: создаёт `ctx` через `client.WithPagination`, кладёт `input` в `Inputs`, вызывает `c.Handler(ctx, input)`, сохраняет результат в `Outputs`, обновляет `WithPagination`. Паники через `recover()` ловятся и пишутся в `Errors` — наружу не пробрасываются. |
+| `Entry(input I) *CL` | Только регистрирует `input` в `Inputs`, хендлер **не вызывается**. Используется в паре с `Expect`/`ExpectArray` для кейсов, которые нельзя воспроизвести (side-effects в БД, внешние вызовы и т.п.). |
+| `Expect(output any) *CL` | Регистрирует ожидаемый выход в `Outputs` как один элемент. Парный к `Entry`. |
+| `ExpectArray(output any) *CL` | То же, что `Expect`, но оборачивает результат в `[]any{output}`. Удобно для кейсов с массивами. |
+| `GetDump() RouteDump` | Собирает финальный дамп для документации. |
+
+Структура `RouteDump`:
+
+```go
+type RouteDump struct {
+    Method         string
+    Description    string
+    AccessKey      string
+    Inputs         []any
+    Outputs        []any
+    Errors         []string
+    WithPagination bool
+}
+```
+
+Поля `Method`, `Description`, `AccessKey` в `GetDump()` берутся из коллектора напрямую (без методов-сеттеров — заполняются автоматически или остаются пустыми).
+
+### Пример из шаблона
+
+```go
+type HelloWorldInput struct{}
+type HelloWorldOutput interface{ any }
+
+var HelloWorld = aperture.Route[HelloWorldInput, HelloWorldOutput]{
+    Description: "HW",
+    Handler:     HelloWorldHandler,
+    Prepare: func(cl *aperture.CL[HelloWorldInput, HelloWorldOutput]) {
+        cl.Execute(HelloWorldInput{})
+    },
+}
+```
+
+### Типичные паттерны
+
+```go
+Prepare: func(cl *aperture.CL[MyInput, MyOutput]) {
+    // реальный прогон хендлера (может дёрнуть БД)
+    cl.Execute(MyInput{Foo: "bar"})
+
+    // ручное описание кейса без вызова хендлера
+    cl.Entry(MyInput{Foo: "baz"}).Expect(MyOutput{Result: "qux"})
+
+    // для массивов
+    cl.Entry(MyInput{}).ExpectArray([]MyItem{...})
+}
+```
+
+### Нюансы
+
+- `Execute` **выполняет реальный код хендлера** — учитывайте side-effects (БД, письма, логи). Паники не пробьются наружу, они попадут в `Errors` дампа.
+- `Handler` коллектора заполняется автоматически в `handle.go` (внутри `Handle()`), в `Prepare` менять его не нужно.
+- Коллектор не thread-safe — `Prepare` предполагается синхронным.
+- Если `Prepare` не указан, `PrepareCall` вернёт пустой дамп — документация/схема для роута будет без примеров.
+- Для WebSocket-топиков есть аналогичный хук `Prepare` (`ws/aperture/topic.go`) с похожим `PrepareCall`, но работающий с `Collector[Message]`.
+
 ## Пагинация с ent ORM
 
 GoAperture имеет встроенную поддержку пагинации для ent ORM. Ответ автоматически получает мета-данные `pagination` (`page`, `size`, `total`).
@@ -250,6 +337,7 @@ a2 install-skill
 4. Защищённые роуты требуют наличия пользователя с правами доступа
 5. Для приватного доступа укажи `PrivateAccess: true` в описании роута
 6. Для пагинации с ent ORM используй `a2 ent-templates-export` и метод `Paginate`
+7. Используй `Prepare` для сбора примеров входных/выходных данных — это улучшает автогенерируемую документацию роута
 
 ## Установка скилла на другой компьютер
 
