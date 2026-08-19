@@ -61,15 +61,17 @@ func docHandle[P Payload](api *Api[P]) RouteHandler {
 
 		w.Header().Set("Content-Type", "application/json")
 
+		token := api.Auth.GetDevToken()
+
 		if input.Version == 2 {
-			json.NewEncoder(w).Encode(convertToV2(&schema))
+			json.NewEncoder(w).Encode(convertToV2(&schema, token))
 			return
 		}
 
 		json.NewEncoder(w).Encode(DocResult{
 			Schema:  schema,
 			Version: 3,
-			Token:   api.Auth.GetDevToken(),
+			Token:   token,
 		})
 	}
 }

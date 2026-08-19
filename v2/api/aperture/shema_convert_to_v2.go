@@ -20,9 +20,10 @@ type DocOutputV2 struct {
 type DocResultV2 struct {
 	Schema  []DocOutputV2 `json:"schema"`
 	Version int           `json:"version"`
+	Token   string        `json:"token,omitempty"`
 }
 
-func convertToV2(doc *[]DocOutput) DocResultV2 {
+func convertToV2(doc *[]DocOutput, token string) DocResultV2 {
 	schema := []DocOutputV2{}
 
 	for _, route := range *doc {
@@ -65,6 +66,7 @@ func convertToV2(doc *[]DocOutput) DocResultV2 {
 	return DocResultV2{
 		Schema:  schema,
 		Version: 2,
+		Token:   token,
 	}
 }
 
