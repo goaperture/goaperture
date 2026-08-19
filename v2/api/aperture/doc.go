@@ -28,6 +28,7 @@ type DocOutput struct {
 type DocResult struct {
 	Schema  []DocOutput `json:"schema"`
 	Version int         `json:"version"`
+	Token   string      `json:"token,omitempty"`
 }
 
 type DocInput struct {
@@ -68,6 +69,7 @@ func docHandle[P Payload](api *Api[P]) RouteHandler {
 		json.NewEncoder(w).Encode(DocResult{
 			Schema:  schema,
 			Version: 3,
+			Token:   api.Auth.GetDevToken(),
 		})
 	}
 }

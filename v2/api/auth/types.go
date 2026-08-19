@@ -15,6 +15,7 @@ type Auth[Payload any] struct {
 	Secret     string
 	RSA        RSA
 	prefix     string
+	UserId     ID
 }
 
 func (a *Auth[Payload]) SetPrefix(prefix string) {

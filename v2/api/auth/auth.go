@@ -16,6 +16,15 @@ func (a *Auth[Payload]) getAccessToken(client Payload) string {
 	return token
 }
 
+func (a *Auth[Payload]) GetDevToken() string {
+	if a.UserId == "" {
+		return ""
+	}
+
+	token := getJwt(a.GetPayload(a.UserId), 24*60*7, a.GetSecret())
+	return token
+}
+
 func (a *Auth[Payload]) createRefreshToken(w *http.ResponseWriter, id ID) {
 	life := a.LiveTime.RefreshKey
 
