@@ -8,6 +8,7 @@ import (
 )
 
 type Collector[I any, O any] struct {
+	Context        context.Context
 	Method         string
 	Description    string
 	Handler        func(context.Context, I) O
@@ -24,7 +25,7 @@ func (c *Collector[I, O]) Execute(input I) *Collector[I, O] {
 		}
 	}()
 
-	ctx := client.WithPagination(context.Background())
+	ctx := client.WithPagination(c.Context)
 
 	c.Inputs = append(c.Inputs, input)
 	output := c.Handler(ctx, input)

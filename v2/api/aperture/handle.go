@@ -63,9 +63,11 @@ func Handle[I Input, O Output](route *Route[I, O]) Switch {
 
 			return nil
 		},
-		PrepareCall: func() collector.RouteDump {
+		PrepareCall: func(token string) collector.RouteDump {
+			ctx := client.WithToken(context.TODO(), token)
 
 			var cll = collector.Collector[I, O]{
+				Context: ctx,
 				Handler: route.Handler,
 			}
 

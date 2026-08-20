@@ -53,7 +53,7 @@ func docHandle[P Payload](api *Api[P]) RouteHandler {
 			return
 		}
 
-		schema := getDocs(api.routes, api.ws, api.AccessPrefix)
+		schema := getDocs(api.routes, api.ws, api.AccessPrefix, api.Auth.GetDevToken())
 
 		if api.Auth.Login != nil {
 			schema = append(schema, getAuthDocs()...)
@@ -76,11 +76,11 @@ func docHandle[P Payload](api *Api[P]) RouteHandler {
 	}
 }
 
-func getDocs(routes Routes, ws *aperture.WebSockets, accessPrefix string) []DocOutput {
+func getDocs(routes Routes, ws *aperture.WebSockets, accessPrefix string, devToken string) []DocOutput {
 	var result = []DocOutput{}
 
 	for path, route := range routes {
-		dump := route.PrepareCall()
+		dump := route.PrepareCall(devToken)
 
 		var accessKey string
 
