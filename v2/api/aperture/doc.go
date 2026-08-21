@@ -23,6 +23,7 @@ type DocOutput struct {
 	AccessKey      string         `json:"accessKey,omitempty"`
 	TopicDocs      map[string]any `json:"topics,omitempty"`
 	WithPagination bool           `json:"pagination,omitempty"`
+	Types          Types          `json:"types,omitempty"`
 }
 
 type DocResult struct {
@@ -88,10 +89,12 @@ func getDocs(routes Routes, ws *aperture.WebSockets, accessPrefix string, devTok
 			accessKey = auth.GetAccessKeyFromUrl(path, accessPrefix)
 		}
 
-		var method = "post"
+		var method = "query"
 		if route.Method != "" {
 			method = route.Method
 		}
+
+		alias, _ := getAlias(path)
 
 		result = append(result, DocOutput{
 			Url:            path,
@@ -103,6 +106,7 @@ func getDocs(routes Routes, ws *aperture.WebSockets, accessPrefix string, devTok
 			AccessKey:      accessKey,
 			Method:         method,
 			WithPagination: dump.WithPagination,
+			Types:          route.Types.GetWithDefault(alias),
 		})
 	}
 
@@ -141,7 +145,11 @@ func getAuthDocs() []DocOutput {
 			Url:         auth_paths.LOGIN,
 			Type:        "rest",
 			Description: "Получить Access Token",
-			Method:      "POST",
+			Types: Types{
+				Input:  "LoginInput",
+				Output: "LoginSuccess",
+			},
+			Method: "POST",
 			Input: []any{
 				auth.LoginInput{},
 			},
@@ -150,7 +158,11 @@ func getAuthDocs() []DocOutput {
 			},
 		},
 		{
-			Url:         auth_paths.LOGOUT,
+			Url: auth_paths.LOGOUT,
+			Types: Types{
+				Input:  "LogoutInput",
+				Output: "LogoutSuccess",
+			},
 			Type:        "rest",
 			Description: "Заблокировать Access Token",
 			Method:      "POST",
@@ -159,7 +171,11 @@ func getAuthDocs() []DocOutput {
 			},
 		},
 		{
-			Url:         auth_paths.REFRESH,
+			Url: auth_paths.REFRESH,
+			Types: Types{
+				Input:  "TokenRefresh",
+				Output: "TokenRefreshSuccess",
+			},
 			Type:        "rest",
 			Description: "Обновить Access Token",
 			Method:      "POST",

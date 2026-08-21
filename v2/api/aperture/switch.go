@@ -14,4 +14,5 @@ type Switch struct {
 	PrivateAccess bool
 	Description   string
 	Method        string
+	Types         Types
 }

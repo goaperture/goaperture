@@ -78,5 +78,6 @@ func Handle[I Input, O Output](route *Route[I, O]) Switch {
 		PrivateAccess: route.PrivateAccess,
 		Description:   route.Description,
 		Method:        route.Method,
+		Types:         route.Types,
 	}
 }

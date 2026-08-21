@@ -8,6 +8,8 @@ type DocOutputV2 struct {
 	Url         string         `json:"url"`
 	Version     string         `json:"version"`
 	Alias       string         `json:"alias"`
+	AliasInput  string         `json:"alias_input"`
+	AliasOutput string         `json:"alias_output"`
 	Method      string         `json:"method"`
 	Input       any            `json:"inputType"`
 	Output      any            `json:"outputType"`
@@ -34,7 +36,7 @@ func convertToV2(doc *[]DocOutput, token string) DocResultV2 {
 
 		if route.Input != nil {
 			input = map[string]any{
-				alias + "Input___TYPE__": route.Input,
+				route.Types.Input + "___TYPE__": route.Input,
 			}
 		}
 
@@ -46,7 +48,7 @@ func convertToV2(doc *[]DocOutput, token string) DocResultV2 {
 
 		if route.Output != nil {
 			output = map[string]any{
-				alias + "Output___TYPE__": route.Output,
+				route.Types.Output + "___TYPE__": route.Output,
 			}
 		}
 
@@ -54,6 +56,8 @@ func convertToV2(doc *[]DocOutput, token string) DocResultV2 {
 			Url:         route.Url,
 			Version:     version,
 			Alias:       alias,
+			AliasInput:  route.Types.Input,
+			AliasOutput: route.Types.Output,
 			Method:      route.Method,
 			Input:       input,
 			Output:      output,

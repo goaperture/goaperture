@@ -29,6 +29,7 @@ type Route[I Input, O Output] struct {
 	PrivateAccess bool
 	Description   string
 	Prepare       Prepare[I, O]
+	Types         Types
 }
 
 func GetPayload[P any](ctx context.Context) (*P, bool) {
