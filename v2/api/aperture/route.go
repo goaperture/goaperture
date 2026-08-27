@@ -2,6 +2,7 @@ package aperture
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/goaperture/goaperture/v2/api/collector"
 )
@@ -30,6 +31,11 @@ type Route[I Input, O Output] struct {
 	Description   string
 	Prepare       Prepare[I, O]
 	Types         Types
+	Stream        bool
+}
+
+func (r *Route[I, O]) Push(data any) {
+	fmt.Println("stream>>", data)
 }
 
 func GetPayload[P any](ctx context.Context) (*P, bool) {

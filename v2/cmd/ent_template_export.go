@@ -42,7 +42,7 @@ func (q *{{ $.Name }}Query) Paginate(ctx context.Context, page, size int) *{{ $.
 	}
 	offset := (page - 1) * size
 
-	total, _ := q.Clone().Offset(0).Limit(-1).Count(ctx)
+	total, _ := q.Clone().Count(ctx)
 	client.SetPagination(ctx, responce.Pagination{
 		Page:  page,
 		Size:  size,
