@@ -15,6 +15,7 @@ type Output interface {
 }
 
 type Handler[I Input, O Output] = func(ctx context.Context, input I) O
+type SseHandler[I Input, O Output] = func(ctx context.Context, Input I, Output O) bool
 
 type T[P Input] interface {
 	Execute(input P)
@@ -31,11 +32,18 @@ type Route[I Input, O Output] struct {
 	Description   string
 	Prepare       Prepare[I, O]
 	Types         Types
-	Stream        bool
+
+	SSE            bool
+	active_clients []I
+	OnPush         SseHandler[I, O]
 }
 
-func (r *Route[I, O]) Push(data any) {
-	fmt.Println("stream>>", data)
+func (r *Route[I, O]) Push(data O) {
+	for _, ac := range r.active_clients {
+		if r.SSE || r.OnPush == nil && r.OnPush(context.Background(), ac, data) {
+			fmt.Println("stream>>", data)
+		}
+	}
 }
 
 func GetPayload[P any](ctx context.Context) (*P, bool) {
