@@ -38,7 +38,7 @@ type Route[I Input, O Output] struct {
 	OnPush         SseHandler[I, O]
 }
 
-func (r *Route[I, O]) Push(data O) {
+func (r *Route[I, O]) Push(key string, data O) {
 	for _, ac := range r.active_clients {
 		if r.SSE || r.OnPush == nil && r.OnPush(context.Background(), ac, data) {
 			fmt.Println("stream>>", data)
