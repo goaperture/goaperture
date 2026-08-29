@@ -5,16 +5,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 )
 
-type Message struct {
-	Status    string    `json:"status"`
-	Value     int       `json:"value"`
-	Timestamp time.Time `json:"timestamp"`
-}
-
-func Run(w http.ResponseWriter, r *http.Request, result any) bool {
+func Run(w http.ResponseWriter, r *http.Request, result any, key string) bool {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		return false
@@ -25,12 +18,13 @@ func Run(w http.ResponseWriter, r *http.Request, result any) bool {
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
 
-	send(w, flusher, result)
+	ch := subscribe(key)
+	defer unsubscribe(key, ch)
 
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
-
-	counter := 0
+	if err := send(w, flusher, result); err != nil {
+		log.Println("error", err)
+		return false
+	}
 
 	for {
 		select {
@@ -38,28 +32,28 @@ func Run(w http.ResponseWriter, r *http.Request, result any) bool {
 			log.Println("Клиент отключился")
 			return false
 
-		case <-ticker.C:
-			counter++
-
-			msg := Message{
-				Status:    "active",
-				Value:     counter,
-				Timestamp: time.Now(),
-			}
-			err := send(w, flusher, msg)
-			if err != nil {
+		case msg := <-ch:
+			if err := send(w, flusher, msg); err != nil {
 				log.Println("error", err)
-				continue
 			}
-
 		}
 	}
 }
 
 func send(w http.ResponseWriter, flusher http.Flusher, result any) error {
-	jsonData, err := json.Marshal(result)
-	if err != nil {
-		return err
+	var jsonData []byte
+
+	switch v := result.(type) {
+	case []byte:
+		// уже сериализовано (сообщение из хаба) — пишем как есть,
+		// иначе json.Marshal([]byte) дал бы base64
+		jsonData = v
+	default:
+		var err error
+		jsonData, err = json.Marshal(result)
+		if err != nil {
+			return err
+		}
 	}
 
 	fmt.Fprintf(w, "data: %s\n\n", jsonData)

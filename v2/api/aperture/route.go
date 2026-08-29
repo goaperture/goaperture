@@ -2,9 +2,11 @@ package aperture
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/goaperture/goaperture/v2/api/collector"
+	"github.com/goaperture/goaperture/v2/api/sse"
 )
 
 type Input interface {
@@ -35,7 +37,13 @@ type Route[I Input, O Output] struct {
 }
 
 func (r *Route[I, O]) Push(key string, data O) {
-	fmt.Println(">>>", key)
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		fmt.Println("sse push marshal error:", err)
+		return
+	}
+
+	sse.Publish(key, jsonData)
 }
 
 func GetPayload[P any](ctx context.Context) (*P, bool) {

@@ -56,7 +56,7 @@ func mainHandler[I Input, O Output](route *Route[I, O]) ConfigHandler {
 
 			sseContext := sse.Get(ctx)
 			if sseContext.Use {
-				if sse.Run(w, r, result) {
+				if sse.Run(w, r, result, sseContext.Key) {
 					return
 				}
 			}
