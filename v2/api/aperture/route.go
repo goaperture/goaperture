@@ -32,18 +32,10 @@ type Route[I Input, O Output] struct {
 	Description   string
 	Prepare       Prepare[I, O]
 	Types         Types
-
-	SSE            bool
-	active_clients []I
-	OnPush         SseHandler[I, O]
 }
 
 func (r *Route[I, O]) Push(key string, data O) {
-	for _, ac := range r.active_clients {
-		if r.SSE || r.OnPush == nil && r.OnPush(context.Background(), ac, data) {
-			fmt.Println("stream>>", data)
-		}
-	}
+	fmt.Println(">>>", key)
 }
 
 func GetPayload[P any](ctx context.Context) (*P, bool) {

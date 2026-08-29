@@ -7,11 +7,12 @@ import (
 	"github.com/goaperture/goaperture/v2/api/auth"
 	"github.com/goaperture/goaperture/v2/api/client"
 	"github.com/goaperture/goaperture/v2/api/params"
+	"github.com/goaperture/goaperture/v2/api/sse"
 	"github.com/goaperture/goaperture/v2/exception"
 )
 
-type HTTPHandler func(w http.ResponseWriter, r *http.Request)
 type ConfigHandler func(secret auth.XSecret, accessPrefix string) HTTPHandler
+type HTTPHandler func(w http.ResponseWriter, r *http.Request)
 
 func mainHandler[I Input, O Output](route *Route[I, O]) ConfigHandler {
 	return func(secret auth.XSecret, accessPrefix string) HTTPHandler {
@@ -34,6 +35,7 @@ func mainHandler[I Input, O Output](route *Route[I, O]) ConfigHandler {
 			ctx := client.WithRequest(r.Context(), r)
 			ctx = client.WithResponce(ctx, &w)
 			ctx = client.WithPagination(ctx)
+			ctx = sse.With(ctx)
 
 			if exists {
 				ctx = client.WithToken(ctx, jwt)
@@ -43,8 +45,6 @@ func mainHandler[I Input, O Output](route *Route[I, O]) ConfigHandler {
 
 			var data = route.Handler(ctx, input)
 
-			w.Header().Set("Content-Type", "application/json")
-
 			pagination := client.GetPagination(ctx).Export()
 
 			result := Responce{
@@ -52,6 +52,16 @@ func mainHandler[I Input, O Output](route *Route[I, O]) ConfigHandler {
 				Pagination: pagination,
 			}
 
+			// ----
+
+			sseContext := sse.Get(ctx)
+			if sseContext.Use {
+				if sse.Run(w, r, result) {
+					return
+				}
+			}
+
+			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(result)
 
 		}
