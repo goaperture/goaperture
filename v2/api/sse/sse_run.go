@@ -5,9 +5,16 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 )
 
 func Run(w http.ResponseWriter, r *http.Request, result any, key string) bool {
+	acceptHeader := r.Header.Get("Accept")
+
+	if !strings.Contains(acceptHeader, "text/event-stream") {
+		return false
+	}
+
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		return false
@@ -22,7 +29,7 @@ func Run(w http.ResponseWriter, r *http.Request, result any, key string) bool {
 	defer unsubscribe(key, ch)
 
 	if err := send(w, flusher, result); err != nil {
-		log.Println("error", err)
+		// log.Println("error", err)
 		return false
 	}
 
@@ -34,7 +41,7 @@ func Run(w http.ResponseWriter, r *http.Request, result any, key string) bool {
 
 		case msg := <-ch:
 			if err := send(w, flusher, msg); err != nil {
-				log.Println("error", err)
+				// log.Println("error", err)
 			}
 		}
 	}

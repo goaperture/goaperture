@@ -45,11 +45,11 @@ func mainHandler[I Input, O Output](route *Route[I, O]) ConfigHandler {
 
 			var data = route.Handler(ctx, input)
 
-			pagination := client.GetPagination(ctx).Export()
+			result := Responce{Data: data}
 
-			result := Responce{
-				Data:       data,
-				Pagination: pagination,
+			pagination := client.GetPagination(ctx).Export()
+			if pagination != nil {
+				result.Pagination = pagination
 			}
 
 			// ----

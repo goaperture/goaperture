@@ -37,7 +37,7 @@ type Route[I Input, O Output] struct {
 }
 
 func (r *Route[I, O]) Push(key string, data O) {
-	jsonData, err := json.Marshal(data)
+	jsonData, err := json.Marshal(Responce{Data: data})
 	if err != nil {
 		fmt.Println("sse push marshal error:", err)
 		return
