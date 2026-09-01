@@ -2,6 +2,7 @@ package aperture
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/goaperture/goaperture/v2/api/auth"
@@ -16,7 +17,6 @@ type HTTPHandler func(w http.ResponseWriter, r *http.Request)
 
 func mainHandler[I Input, O Output](route *Route[I, O]) ConfigHandler {
 	return func(secret auth.XSecret, accessPrefix string) HTTPHandler {
-
 		return func(w http.ResponseWriter, r *http.Request) {
 			defer exception.Catch(&w)
 
@@ -56,14 +56,13 @@ func mainHandler[I Input, O Output](route *Route[I, O]) ConfigHandler {
 
 			sseContext := sse.Get(ctx)
 			if sseContext.Use {
-				if sse.Run(w, r, result, sseContext.Key) {
+				if sse.Run(w, r, result, fmt.Sprintf("%p", route), sseContext.Key) {
 					return
 				}
 			}
 
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(result)
-
 		}
 	}
 }

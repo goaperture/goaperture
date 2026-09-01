@@ -43,7 +43,8 @@ func (r *Route[I, O]) Push(key string, data O) {
 		return
 	}
 
-	sse.Publish(key, jsonData)
+	fullkey := fmt.Sprintf("%p:%s", r, key)
+	sse.Publish(fullkey, jsonData)
 }
 
 func GetPayload[P any](ctx context.Context) (*P, bool) {

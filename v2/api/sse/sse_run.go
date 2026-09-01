@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func Run(w http.ResponseWriter, r *http.Request, result any, key string) bool {
+func Run(w http.ResponseWriter, r *http.Request, result any, path, key string) bool {
 	acceptHeader := r.Header.Get("Accept")
 
 	if !strings.Contains(acceptHeader, "text/event-stream") {
@@ -25,8 +25,11 @@ func Run(w http.ResponseWriter, r *http.Request, result any, key string) bool {
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
 
-	ch := subscribe(key)
-	defer unsubscribe(key, ch)
+	var fullkey = fmt.Sprintf("%s:%s", path, key)
+	fmt.Println("Subscribe -> ", fullkey)
+
+	ch := subscribe(fullkey)
+	defer unsubscribe(fullkey, ch)
 
 	if err := send(w, flusher, result); err != nil {
 		// log.Println("error", err)
