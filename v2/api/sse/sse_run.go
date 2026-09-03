@@ -3,7 +3,7 @@ package sse
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 )
@@ -26,7 +26,7 @@ func Run(w http.ResponseWriter, r *http.Request, result any, path, key string) b
 	w.Header().Set("X-Accel-Buffering", "no")
 
 	var fullkey = fmt.Sprintf("%s:%s", path, key)
-	fmt.Println("Subscribe -> ", fullkey)
+	slog.Debug("SSE subscribe", slog.String("key", fullkey))
 
 	ch := subscribe(fullkey)
 	defer unsubscribe(fullkey, ch)
@@ -39,12 +39,12 @@ func Run(w http.ResponseWriter, r *http.Request, result any, path, key string) b
 	for {
 		select {
 		case <-r.Context().Done():
-			log.Println("Клиент отключился")
+			slog.Debug("SSE close")
 			return false
 
 		case msg := <-ch:
 			if err := send(w, flusher, msg); err != nil {
-				// log.Println("error", err)
+				slog.Error("SSE error", slog.Any("error", err))
 			}
 		}
 	}
