@@ -13,17 +13,18 @@ import (
 )
 
 type DocOutput struct {
-	Url            string         `json:"url"`
-	Type           string         `json:"type"`
-	Method         string         `json:"method"`
-	Input          any            `json:"inputs,omitempty"`
-	Output         any            `json:"outputs,omitempty"`
-	Errors         []string       `json:"errors,omitempty"`
-	Description    string         `json:"description"`
-	AccessKey      string         `json:"accessKey,omitempty"`
-	TopicDocs      map[string]any `json:"topics,omitempty"`
-	WithPagination bool           `json:"pagination,omitempty"`
-	Types          Types          `json:"types,omitempty"`
+	Url                  string         `json:"url"`
+	Type                 string         `json:"type"`
+	Method               string         `json:"method"`
+	Input                any            `json:"inputs,omitempty"`
+	Output               any            `json:"outputs,omitempty"`
+	Errors               []string       `json:"errors,omitempty"`
+	Description          string         `json:"description"`
+	AccessKey            string         `json:"accessKey,omitempty"`
+	AccessKeyDescription string         `json:"accessKeyDescription,omitempty"`
+	TopicDocs            map[string]any `json:"topics,omitempty"`
+	WithPagination       bool           `json:"pagination,omitempty"`
+	Types                Types          `json:"types,omitempty"`
 }
 
 type DocResult struct {
@@ -84,9 +85,11 @@ func getDocs(routes Routes, ws *aperture.WebSockets, accessPrefix string, devTok
 		dump := route.PrepareCall(devToken)
 
 		var accessKey string
+		var accessDescription string
 
 		if route.PrivateAccess {
 			accessKey = auth.GetAccessKeyFromUrl(path, accessPrefix)
+			accessDescription = route.AccessDescription
 		}
 
 		var method = "query"
@@ -97,16 +100,20 @@ func getDocs(routes Routes, ws *aperture.WebSockets, accessPrefix string, devTok
 		alias, _ := getAlias(path)
 
 		result = append(result, DocOutput{
-			Url:            path,
-			Type:           "rest",
-			Input:          dump.Inputs,
-			Output:         dump.Outputs,
-			Errors:         dump.Errors,
-			Description:    route.Description,
-			AccessKey:      accessKey,
-			Method:         method,
-			WithPagination: dump.WithPagination,
-			Types:          route.Types.GetWithDefault(alias),
+			Url:    path,
+			Type:   "rest",
+			Input:  dump.Inputs,
+			Output: dump.Outputs,
+			Errors: dump.Errors,
+
+			// Description — описание эндпоинта.
+			// Укажите целевое действие в инфинитиве (например: получить..., создать..., обновить...).
+			Description:          route.Description,
+			AccessKey:            accessKey,
+			AccessKeyDescription: accessDescription,
+			Method:               method,
+			WithPagination:       dump.WithPagination,
+			Types:                route.Types.GetWithDefault(alias),
 		})
 	}
 

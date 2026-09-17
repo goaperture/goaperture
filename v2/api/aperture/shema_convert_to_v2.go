@@ -5,18 +5,20 @@ import (
 )
 
 type DocOutputV2 struct {
-	Url         string         `json:"url"`
-	Version     string         `json:"version"`
-	Alias       string         `json:"alias"`
-	AliasInput  string         `json:"alias_input"`
-	AliasOutput string         `json:"alias_output"`
-	Method      string         `json:"method"`
-	Input       any            `json:"inputType"`
-	Output      any            `json:"outputType"`
-	Pathprops   []string       `json:"pathProps"`
-	Exceptions  []string       `json:"exceptions"`
-	Description string         `json:"description"`
-	Topics      map[string]any `json:"topics,omitempty"`
+	Url                   string         `json:"url"`
+	Version               string         `json:"version"`
+	Alias                 string         `json:"alias"`
+	AliasInput            string         `json:"alias_input"`
+	AliasOutput           string         `json:"alias_output"`
+	Method                string         `json:"method"`
+	Input                 any            `json:"inputType"`
+	Output                any            `json:"outputType"`
+	Pathprops             []string       `json:"pathProps"`
+	Exceptions            []string       `json:"exceptions"`
+	Description           string         `json:"description"`
+	Topics                map[string]any `json:"topics,omitempty"`
+	Permission            string         `json:"permission,omitempty"`
+	PermissionDescription string         `json:"permission_description,omitempty"`
 }
 
 type DocResultV2 struct {
@@ -64,6 +66,9 @@ func convertToV2(doc *[]DocOutput, token string) DocResultV2 {
 			Exceptions:  route.Errors,
 			Description: route.Description,
 			Topics:      route.TopicDocs,
+
+			Permission:            route.AccessKey,
+			PermissionDescription: route.AccessKeyDescription,
 		})
 	}
 

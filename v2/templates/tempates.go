@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 	"text/template"
+	"unicode"
 )
 
 type FileData struct {
@@ -15,6 +16,11 @@ type FileData struct {
 }
 
 func GetRouteCode(pkg, name, description string, sequre bool) string {
+
+	if unicode.IsLower(rune(pkg[0])) {
+		sequre = true
+	}
+
 	var code = `package {{.Pkg}}
 	import (
 		"context"

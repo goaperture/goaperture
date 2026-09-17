@@ -28,12 +28,17 @@ type CL[P Input, O Output] = collector.Collector[P, O]
 type Prepare[P Input, O Output] = func(collector *CL[P, O])
 
 type Route[I Input, O Output] struct {
-	Method        string
-	Handler       Handler[I, O]
-	PrivateAccess bool
-	Description   string
-	Prepare       Prepare[I, O]
-	Types         Types
+	Method  string
+	Handler Handler[I, O]
+
+	PrivateAccess     bool
+	AccessDescription string
+
+	// Description — описание эндпоинта.
+	// Укажите целевое действие в инфинитиве (например: получить..., создать..., обновить...).
+	Description string
+	Prepare     Prepare[I, O]
+	Types       Types
 }
 
 func (r *Route[I, O]) Push(key string, data O) {

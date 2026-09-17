@@ -30,9 +30,10 @@ func Handle[I Input, O Output](route *Route[I, O]) Switch {
 
 			return cll.GetDump()
 		},
-		PrivateAccess: route.PrivateAccess,
-		Description:   route.Description,
-		Method:        route.Method,
-		Types:         route.Types,
+		PrivateAccess:     route.PrivateAccess,
+		Description:       route.Description,
+		AccessDescription: route.AccessDescription,
+		Method:            route.Method,
+		Types:             route.Types,
 	}
 }
