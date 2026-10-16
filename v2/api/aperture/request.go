@@ -11,6 +11,6 @@ func (a *Api[P]) Request(ctx context.Context) *http.Request {
 	return client.GetRequest(ctx)
 }
 
-func (a *Api[P]) Responce(ctx context.Context) *http.ResponseWriter {
-	return client.GetResponce(ctx)
+func (a *Api[P]) Response(ctx context.Context) http.ResponseWriter {
+	return client.GetResponse(ctx)
 }

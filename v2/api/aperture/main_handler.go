@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"reflect"
 
 	"github.com/goaperture/goaperture/v2/api/auth"
 	"github.com/goaperture/goaperture/v2/api/client"
@@ -33,7 +34,7 @@ func mainHandler[I Input, O Output](route *Route[I, O]) ConfigHandler {
 			}
 
 			ctx := client.WithRequest(r.Context(), r)
-			ctx = client.WithResponce(ctx, &w)
+			ctx = client.WithResponse(ctx, &w)
 			ctx = client.WithPagination(ctx)
 			ctx = sse.With(ctx)
 
@@ -46,6 +47,10 @@ func mainHandler[I Input, O Output](route *Route[I, O]) ConfigHandler {
 			var data = route.Handler(ctx, input)
 
 			result := Responce{Data: data}
+			v := reflect.ValueOf(result.Data)
+			if result.Data == nil || (v.Kind() == reflect.Ptr && v.IsNil()) || v.Interface() == nil {
+				return
+			}
 
 			pagination := client.GetPagination(ctx).Export()
 			if pagination != nil {
