@@ -8,7 +8,7 @@ import (
 	"github.com/goaperture/goaperture/v2/api/auth/auth_paths"
 	"github.com/goaperture/goaperture/v2/api/params"
 	"github.com/goaperture/goaperture/v2/exception"
-	"github.com/goaperture/goaperture/v2/responce"
+	"github.com/goaperture/goaperture/v2/response"
 	"github.com/goaperture/goaperture/v2/ws/aperture"
 )
 
@@ -174,7 +174,7 @@ func getAuthDocs() []DocOutput {
 			Description: "Заблокировать Access Token",
 			Method:      "POST",
 			Output: []any{
-				responce.SuccessType{},
+				response.SuccessType{},
 			},
 		},
 		{

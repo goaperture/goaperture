@@ -1,4 +1,4 @@
-package responce
+package response
 
 type SuccessType struct {
 	Success bool `json:"success"`
@@ -10,25 +10,25 @@ type Pagination struct {
 	Total int `json:"total"`
 }
 
-type Responce struct {
+type Response struct {
 	Data       any        `json:"data,omitempty"`
 	Redirect   string     `json:"redirect,omitempty"`
 	Error      any        `json:"error,omitempty"`
 	Pagination Pagination `json:"pagination,omitempty"`
 }
 
-func Success(status bool) Responce {
+func Success(status bool) Response {
 	return Create(SuccessType{Success: status})
 }
 
-func Create(data any) Responce {
-	return Responce{Data: data}
+func Create(data any) Response {
+	return Response{Data: data}
 }
 
-func Redirect(to string) Responce {
-	return Responce{Redirect: to}
+func Redirect(to string) Response {
+	return Response{Redirect: to}
 }
 
-func Error(error any) Responce {
-	return Responce{Error: error}
+func Error(error any) Response {
+	return Response{Error: error}
 }

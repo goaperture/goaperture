@@ -14,7 +14,7 @@ type Error struct {
 	Code    int    `json:"code"`
 }
 
-type Responce struct {
+type Response struct {
 	Data  any    `json:"data"`
 	Error *Error `json:"error,omitempty"`
 }
@@ -70,7 +70,7 @@ func invoke[I Input, P Payload](method func(I, Client[P]) (any, error), wrap boo
 		defer func() {
 			if r := recover(); r != nil {
 				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(Responce{
+				json.NewEncoder(w).Encode(Response{
 					Error: &Error{Message: fmt.Sprint(r), Code: 401},
 				})
 			}
@@ -79,9 +79,9 @@ func invoke[I Input, P Payload](method func(I, Client[P]) (any, error), wrap boo
 		var props = params.GetInput[I](r)
 		data, err := method(props, NewClient[P](r, &w, secret, false))
 
-		var ResponceErr *Error
+		var ResponseErr *Error
 		if err != nil {
-			ResponceErr = &Error{Message: err.Error(), Code: 400}
+			ResponseErr = &Error{Message: err.Error(), Code: 400}
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -91,9 +91,9 @@ func invoke[I Input, P Payload](method func(I, Client[P]) (any, error), wrap boo
 			return
 		}
 
-		result := Responce{
+		result := Response{
 			Data:  data,
-			Error: ResponceErr,
+			Error: ResponseErr,
 		}
 
 		json.NewEncoder(w).Encode(result)

@@ -19,14 +19,14 @@ func GetRequest(ctx context.Context) *http.Request {
 	return nil
 }
 
-type responcekey struct{}
+type responsekey struct{}
 
-func WithResponse(ctx context.Context, responce *http.ResponseWriter) context.Context {
-	return context.WithValue(ctx, responcekey{}, responce)
+func WithResponse(ctx context.Context, response *http.ResponseWriter) context.Context {
+	return context.WithValue(ctx, responsekey{}, response)
 }
 
 func GetResponse(ctx context.Context) http.ResponseWriter {
-	val := ctx.Value(responcekey{})
+	val := ctx.Value(responsekey{})
 	if req, ok := val.(*http.ResponseWriter); ok {
 		return *req
 	}

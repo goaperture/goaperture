@@ -18,7 +18,7 @@ type Client[P Payload] struct {
 
 type Request struct {
 	Request  *http.Request
-	Responce *http.ResponseWriter
+	Response *http.ResponseWriter
 	secret   string
 }
 
@@ -43,7 +43,7 @@ func NewClient[P Payload](r *http.Request, w *http.ResponseWriter, secret string
 		Payload: getPayload(),
 		Request: Request{
 			Request:  r,
-			Responce: w,
+			Response: w,
 			secret:   secret,
 		},
 		Dev: dev,
@@ -58,7 +58,7 @@ func (client Client[P]) NewJwt(payload P, refreshCookieKey string, refreshId str
 		return "", err
 	}
 
-	http.SetCookie(*client.Responce, &http.Cookie{
+	http.SetCookie(*client.Response, &http.Cookie{
 		Name:     refreshCookieKey,
 		Value:    refresh,
 		Path:     path,
@@ -93,7 +93,7 @@ func (client Client[P]) RefreshJwt(refreshCookieKey string, getPayload func(refr
 }
 
 func (client Client[P]) RemoveJwt(refreshCookieKey string, path string, sequre bool) {
-	http.SetCookie(*client.Responce, &http.Cookie{
+	http.SetCookie(*client.Response, &http.Cookie{
 		Name:     refreshCookieKey,
 		Value:    "",
 		MaxAge:   -1,

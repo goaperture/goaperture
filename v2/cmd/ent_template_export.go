@@ -26,7 +26,7 @@ var entTemplateExport = &cobra.Command{
 {{ define "import/additional/client_dependencies" }}
     //     stdsql "database/sql"
 	"github.com/goaperture/goaperture/v2/api/client"
-	"github.com/goaperture/goaperture/v2/responce"
+	"github.com/goaperture/goaperture/v2/response"
 {{ end }}
 
 
@@ -41,7 +41,7 @@ func (q *{{ $.Name }}Query) Paginate(ctx context.Context, page, size int) *{{ $.
 	offset := (page - 1) * size
 
 	total, _ := q.Clone().Count(ctx)
-	client.SetPagination(ctx, responce.Pagination{
+	client.SetPagination(ctx, response.Pagination{
 		Page:  page,
 		Size:  size,
 		Total: total,

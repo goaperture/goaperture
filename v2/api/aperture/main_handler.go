@@ -46,7 +46,7 @@ func mainHandler[I Input, O Output](route *Route[I, O]) ConfigHandler {
 
 			var data = route.Handler(ctx, input)
 
-			result := Responce{Data: data}
+			result := Response{Data: data}
 			v := reflect.ValueOf(result.Data)
 			if result.Data == nil || (v.Kind() == reflect.Ptr && v.IsNil()) || v.Interface() == nil {
 				return

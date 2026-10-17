@@ -3,21 +3,21 @@ package client
 import (
 	"context"
 
-	"github.com/goaperture/goaperture/v2/responce"
+	"github.com/goaperture/goaperture/v2/response"
 )
 
 type PaginationTotalKey struct{}
 
 type RequestPagination struct {
 	Use bool
-	responce.Pagination
+	response.Pagination
 }
 
 func WithPagination(ctx context.Context) context.Context {
 	return context.WithValue(ctx, PaginationTotalKey{}, new(RequestPagination))
 }
 
-func SetPagination(ctx context.Context, pagination responce.Pagination) {
+func SetPagination(ctx context.Context, pagination response.Pagination) {
 	request := GetPagination(ctx)
 
 	request.Pagination = pagination
@@ -32,7 +32,7 @@ func GetPagination(ctx context.Context) *RequestPagination {
 	return nil
 }
 
-func (p *RequestPagination) Export() *responce.Pagination {
+func (p *RequestPagination) Export() *response.Pagination {
 	if !p.Use {
 		return nil
 	}

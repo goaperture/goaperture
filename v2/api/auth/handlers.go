@@ -6,7 +6,7 @@ import (
 
 	"github.com/goaperture/goaperture/v2/api/auth/auth_paths"
 	"github.com/goaperture/goaperture/v2/exception"
-	"github.com/goaperture/goaperture/v2/responce"
+	"github.com/goaperture/goaperture/v2/response"
 )
 
 func (a *Auth[Payload]) BindHanders(server *http.ServeMux) {
@@ -45,7 +45,7 @@ func (a *Auth[Payload]) onLogout(w http.ResponseWriter, r *http.Request) {
 
 	a.removeRefreshToken(&w)
 
-	json.NewEncoder(w).Encode(responce.Success(true))
+	json.NewEncoder(w).Encode(response.Success(true))
 }
 
 func (a *Auth[Payload]) onRefresh(w http.ResponseWriter, r *http.Request) {

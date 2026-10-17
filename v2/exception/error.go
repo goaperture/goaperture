@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/goaperture/goaperture/v2/responce"
+	"github.com/goaperture/goaperture/v2/response"
 )
 
 type Status struct {
@@ -34,12 +34,12 @@ func Catch(w *http.ResponseWriter) {
 	if r := recover(); r != nil {
 		if v, ok := r.(CustomPanic); ok {
 			(*w).WriteHeader(v.Status.Code)
-			json.NewEncoder(*w).Encode(responce.Error(v))
+			json.NewEncoder(*w).Encode(response.Error(v))
 		} else {
 			log.Println("[!undefined panic] > ", r)
 
 			(*w).WriteHeader(500)
-			json.NewEncoder(*w).Encode(responce.Error(CustomPanic{Message: fmt.Sprintf("%s", r)}))
+			json.NewEncoder(*w).Encode(response.Error(CustomPanic{Message: fmt.Sprintf("%s", r)}))
 		}
 	}
 }
