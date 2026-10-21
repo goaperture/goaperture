@@ -1,0 +1,73 @@
+package aperture
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"reflect"
+
+	"github.com/goaperture/goaperture/v3/api/auth"
+	"github.com/goaperture/goaperture/v3/api/client"
+	"github.com/goaperture/goaperture/v3/api/params"
+	"github.com/goaperture/goaperture/v3/api/sse"
+	"github.com/goaperture/goaperture/v3/exception"
+)
+
+type ConfigHandler func(secret auth.XSecret, accessPrefix string) HTTPHandler
+type HTTPHandler func(w http.ResponseWriter, r *http.Request)
+
+func mainHandler[I Input, O Output](route *Route[I, O]) ConfigHandler {
+	return func(secret auth.XSecret, accessPrefix string) HTTPHandler {
+		return func(w http.ResponseWriter, r *http.Request) {
+			defer exception.Catch(&w)
+
+			jwt, exists := auth.ParseAccessToken(r)
+
+			if route.PrivateAccess {
+				accessKey := auth.GetAccessKeyFromUrl(r.Pattern, accessPrefix)
+				if !exists {
+					exception.NotAccess(accessKey)
+				}
+
+				payload := auth.GetPayloadFromJwt[auth.TempPayload](jwt, secret)
+				payload.Permissions.CheckX(accessKey)
+			}
+
+			ctx := client.WithRequest(r.Context(), r)
+			ctx = client.WithResponse(ctx, &w)
+			ctx = client.WithPagination(ctx)
+			ctx = sse.With(ctx)
+
+			if exists {
+				ctx = client.WithToken(ctx, jwt)
+			}
+
+			var input = params.GetInput[I](r)
+
+			var data = route.Handler(ctx, input)
+
+			result := Response{Data: data}
+			v := reflect.ValueOf(result.Data)
+			if result.Data == nil || (v.Kind() == reflect.Ptr && v.IsNil()) || v.Interface() == nil {
+				return
+			}
+
+			pagination := client.GetPagination(ctx).Export()
+			if pagination != nil {
+				result.Pagination = pagination
+			}
+
+			// ----
+
+			sseContext := sse.Get(ctx)
+			if sseContext.Use {
+				if sse.Run(w, r, result, fmt.Sprintf("%p", route), sseContext.Key) {
+					return
+				}
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(result)
+		}
+	}
+}

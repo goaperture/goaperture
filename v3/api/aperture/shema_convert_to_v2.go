@@ -1,0 +1,112 @@
+package aperture
+
+import (
+	"strings"
+)
+
+type DocOutputV2 struct {
+	Url                   string         `json:"url"`
+	Version               string         `json:"version"`
+	Alias                 string         `json:"alias"`
+	AliasInput            string         `json:"alias_input"`
+	AliasOutput           string         `json:"alias_output"`
+	Method                string         `json:"method"`
+	Input                 any            `json:"inputType"`
+	Output                any            `json:"outputType"`
+	Pathprops             []string       `json:"pathProps"`
+	Exceptions            []string       `json:"exceptions"`
+	Description           string         `json:"description"`
+	Topics                map[string]any `json:"topics,omitempty"`
+	Permission            string         `json:"permission,omitempty"`
+	PermissionDescription string         `json:"permission_description,omitempty"`
+}
+
+type DocResultV2 struct {
+	Schema  []DocOutputV2 `json:"schema"`
+	Version int           `json:"version"`
+	Token   string        `json:"token,omitempty"`
+}
+
+func convertToV2(doc *[]DocOutput, token string) DocResultV2 {
+	schema := []DocOutputV2{}
+
+	for _, route := range *doc {
+		alias, version := getAlias(route.Url)
+
+		var input any
+		var output any
+
+		if route.Input != nil {
+			input = map[string]any{
+				route.Types.Input + "___TYPE__": route.Input,
+			}
+		}
+
+		if route.Method == "ws" {
+			input = map[string]any{
+				alias + "Topic___TYPE__": route.TopicDocs,
+			}
+		}
+
+		if route.Output != nil {
+			output = map[string]any{
+				route.Types.Output + "___TYPE__": route.Output,
+			}
+		}
+
+		schema = append(schema, DocOutputV2{
+			Url:         route.Url,
+			Version:     version,
+			Alias:       alias,
+			AliasInput:  route.Types.Input,
+			AliasOutput: route.Types.Output,
+			Method:      route.Method,
+			Input:       input,
+			Output:      output,
+			Exceptions:  route.Errors,
+			Description: route.Description,
+			Topics:      route.TopicDocs,
+
+			Permission:            route.AccessKey,
+			PermissionDescription: route.AccessKeyDescription,
+		})
+	}
+
+	return DocResultV2{
+		Schema:  schema,
+		Version: 2,
+		Token:   token,
+	}
+}
+
+func getAlias(path string) (string, string) {
+	alias := ""
+	nextUp := false
+
+	var versionIndex = 0
+
+	parts := strings.Split(strings.TrimPrefix(path, "/"), "/")
+	if parts[0] == "ws" {
+		versionIndex = 1
+	}
+
+	version := parts[versionIndex]
+	url := strings.Join(parts[versionIndex+1:], "/")
+
+	for index, char := range url {
+		if index == 0 || nextUp {
+			alias += strings.ToUpper(string(char))
+			nextUp = false
+			continue
+		}
+		if char == '/' || char == '-' {
+			nextUp = true
+			continue
+		}
+
+		nextUp = false
+		alias += string(char)
+	}
+
+	return alias, version
+}

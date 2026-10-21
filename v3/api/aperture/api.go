@@ -1,0 +1,64 @@
+package aperture
+
+import (
+	"fmt"
+	"net/http"
+
+	"github.com/goaperture/goaperture/v3/api/auth"
+	"github.com/goaperture/goaperture/v3/metrics"
+	ws "github.com/goaperture/goaperture/v3/ws/aperture"
+)
+
+type Payload any
+
+type Api[P Payload] struct {
+	Port         int
+	Prefix       string
+	routes       Routes
+	Token        string
+	AccessPrefix string
+	ws           *ws.WebSockets
+	Auth         *auth.Auth[P]
+	middleware   *func(next http.Handler) http.Handler
+	Metrics      bool
+}
+
+func (a *Api[P]) Run() error {
+	server := http.NewServeMux()
+	var secret = auth.XSecret{}
+
+	if a.Auth != nil {
+		secret = a.Auth.GetSecret()
+	}
+
+	for path, route := range a.routes {
+		server.HandleFunc(path, route.Handler(secret, a.AccessPrefix))
+	}
+
+	if a.Auth != nil {
+		a.Auth.SetPrefix(a.Prefix)
+		a.Auth.BindHanders(server)
+	}
+
+	if a.ws != nil {
+		a.ws.BindHanders(server, secret, a.AccessPrefix)
+	}
+
+	if a.Metrics {
+		metrics.BindHanders(server)
+	}
+
+	if a.Token != "" {
+		server.HandleFunc(DOC_URL, docHandle(a))
+	}
+
+	return http.ListenAndServe(fmt.Sprintf(":%d", a.Port), a.wrap(server))
+}
+
+func (a *Api[P]) wrap(server *http.ServeMux) http.Handler {
+	if a.middleware != nil {
+		return (*a.middleware)(server)
+	}
+
+	return server
+}
