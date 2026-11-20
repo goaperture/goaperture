@@ -24,19 +24,22 @@ type LoginOutput struct {
 	Token string `json:"accessToken"`
 }
 
+func (a *Auth[Payload]) BindRefreshAndGetAccessTokens(w *http.ResponseWriter, id ID) string {
+	payload := a.GetPayload(id)
+	a.createRefreshToken(w, id)
+	accessToken := a.getAccessToken(payload)
+	return accessToken
+}
+
 func (a *Auth[Payload]) onLogin(w http.ResponseWriter, r *http.Request) {
 	defer exception.Catch(&w)
 
 	var input LoginInput
 	json.NewDecoder(r.Body).Decode(&input)
-	// var input = params.GetInput[LoginInput](r)
 
 	id := a.Login(input.Login, input.Password)
-	payload := a.GetPayload(id)
+	accessToken := a.BindRefreshAndGetAccessTokens(&w, id)
 
-	a.createRefreshToken(&w, id)
-
-	accessToken := a.getAccessToken(payload)
 	json.NewEncoder(w).Encode(LoginOutput{accessToken})
 }
 
