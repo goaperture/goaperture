@@ -2,6 +2,7 @@ package aperture
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/goaperture/goaperture/v2/api/auth"
@@ -81,7 +82,9 @@ func docHandle[P Payload](api *Api[P]) RouteHandler {
 func getDocs(routes Routes, ws *aperture.WebSockets, accessPrefix string, devToken string) []DocOutput {
 	var result = []DocOutput{}
 
+	fmt.Println("DOC: ")
 	for path, route := range routes {
+		fmt.Println("\t", route.Description)
 		dump := route.PrepareCall(devToken)
 
 		var accessKey string
