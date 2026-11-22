@@ -52,7 +52,7 @@ func (a *Auth[Payload]) removeRefreshToken(w *http.ResponseWriter) {
 		Name:     refreshCookieKey,
 		Value:    "",
 		MaxAge:   -1,
-		Path:     auth_paths.REFRESH,
+		Path:     a.prefix + auth_paths.REFRESH,
 		HttpOnly: true,
 		Secure:   a.Sequre,
 		SameSite: http.SameSiteStrictMode,
