@@ -100,19 +100,22 @@ func (w *walker) structNode(t reflect.Type, val reflect.Value) Node {
 		return Node{Kind: KindPrimitive, Type: "string", Docs: "ISO datetime"}
 	}
 
-	// уже в реестре — просто ссылка (сквозная дедупликация по типу)
-	if named, ok := w.reg.byType[t]; ok {
-		return Node{Kind: KindRef, Name: named.Name}
+	// тип уже в реестре (обойдён ранее или зарезервирован через ReserveName —
+	// тег `ts:"..."`) — просто ссылка; узел заполняем при первой встрече
+	named, ok := w.reg.byType[t]
+	if !ok {
+		named = &Named{Name: w.reg.uniqueName(typeName(t, w))}
+		w.reg.byType[t] = named
+		w.reg.byName[named.Name] = named
 	}
 
-	name := w.reg.uniqueName(typeName(t, w))
-	node := &Node{Kind: KindObject, Props: map[string]Node{}, Optional: map[string]bool{}}
-	named := &Named{Name: name, Node: node}
-	w.reg.byType[t] = named
-	w.reg.byName[name] = named
+	if named.Node == nil {
+		node := &Node{Kind: KindObject, Props: map[string]Node{}, Optional: map[string]bool{}}
+		named.Node = node
+		w.fillProps(node, t, val)
+	}
 
-	w.fillProps(node, t, val)
-	return Node{Kind: KindRef, Name: name}
+	return Node{Kind: KindRef, Name: named.Name}
 }
 
 // fillProps заполняет Props структуры, разворачивая встроенные (embedded) поля.
@@ -152,6 +155,12 @@ func (w *walker) fillProps(node *Node, t reflect.Type, val reflect.Value) {
 		var fv reflect.Value
 		if val.IsValid() && val.Kind() == reflect.Struct {
 			fv = val.Field(i)
+		}
+
+		// структурный тег `ts:"Name"` на поле — явное имя для вложенного типа:
+		// резервируем ДО обхода, чтобы structNode взял имя из реестра
+		if tagOverride := f.Tag.Get("ts"); tagOverride != "" {
+			w.reg.ReserveName(f.Type, tagOverride)
 		}
 
 		w.pushPath(name)

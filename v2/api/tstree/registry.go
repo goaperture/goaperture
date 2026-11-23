@@ -64,6 +64,22 @@ func (r *Registry) Named() []Named {
 	return out
 }
 
+// ReserveName резервирует имя типа до первого обхода (структурный тег `ts:"..."`).
+// Вызывать ДО обхода типа: structNode увидит тип в byType и возьмёт
+// зарезервированное имя, все ref-узлы сразу получат верное имя.
+func (r *Registry) ReserveName(t reflect.Type, name string) {
+	if t == nil || name == "" {
+		return
+	}
+	if _, exists := r.byType[t]; exists {
+		return // тип уже обойдён — имя уже зафиксировано
+	}
+	name = r.uniqueName(name)
+	named := &Named{Name: name}
+	r.byType[t] = named
+	r.byName[name] = named
+}
+
 func (r *Registry) uniqueName(name string) string {
 	name = sanitizeName(name)
 	if name == "" {

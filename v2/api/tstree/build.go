@@ -59,6 +59,10 @@ func (w *walker) rootNode(name string, t reflect.Type, samples []any) Node {
 		return Node{}
 	}
 
+	// ExpectArray оборачивает сэмпл в []any: уточняем до конкретного типа
+	// элемента, иначе корень становится any[] (элемент-интерфейс без значения)
+	t = refineAnyWrapper(t, samples)
+
 	// именованный корень: регистрируем под зарезервированным именем
 	if named, ok := w.reg.byType[t]; ok {
 		return Node{Kind: KindRef, Name: named.Name}
@@ -66,27 +70,85 @@ func (w *walker) rootNode(name string, t reflect.Type, samples []any) Node {
 
 	// узел — по реальной форме типа (структура, map, слайс, примитив)
 	var node *Node
+	sample := firstValue(samples)
 	switch t.Kind() {
 	case reflect.Struct:
 		node = &Node{Kind: KindObject, Props: map[string]Node{}, Optional: map[string]bool{}}
 		defer w.pushPath(name)() // путь анонимных типов начинается с имени корня
-		w.fillProps(node, t, firstValue(samples))
+		w.fillProps(node, t, sample)
 	case reflect.Map:
-		item := w.typeof(t.Elem(), reflect.Value{})
+		item := w.typeof(t.Elem(), mapValue(sample))
 		node = &Node{Kind: KindMap, Name: mapKeyName(t), Item: &item}
 	case reflect.Slice, reflect.Array:
-		item := w.typeof(t.Elem(), reflect.Value{})
+		item := w.typeof(t.Elem(), sliceFirst(sample))
 		node = &Node{Kind: KindArray, Item: &item}
 	default:
 		pn := primitive(t, reflect.Value{})
 		node = &pn
 	}
 
-	named := &Named{Name: name, Node: node}
-	w.reg.byType[t] = named
-	w.reg.byName[name] = named
+	named, ok := w.reg.byType[t]
+	if !ok {
+		named = &Named{Name: name}
+		w.reg.byType[t] = named
+		w.reg.byName[name] = named
+	}
 
-	return Node{Kind: KindRef, Name: name}
+	if named.Node == nil {
+		named.Node = node
+	}
+
+	return Node{Kind: KindRef, Name: named.Name}
+}
+
+// refineAnyWrapper уточняет тип-обёртку ([]any, map[string]any) до конкретного
+// типа из живого примера. ExpectArray кладёт сэмпл в []any, а вывод по
+// пустому интерфейсу без значения даёт any — без уточнения корень any[].
+func refineAnyWrapper(t reflect.Type, samples []any) reflect.Type {
+	if t == nil || len(samples) == 0 {
+		return t
+	}
+
+	// слайс с элементом-пустым интерфейсом: тип первого элемента примера
+	if t.Kind() == reflect.Slice && isEmptyInterface(t.Elem()) {
+		if et := sampleElemType(sliceFirst(firstValue(samples))); et != nil {
+			return reflect.SliceOf(et)
+		}
+		return t
+	}
+
+	// map со значением-пустым интерфейсом
+	if t.Kind() == reflect.Map && isEmptyInterface(t.Elem()) {
+		if et := sampleElemType(mapValue(firstValue(samples))); et != nil {
+			return reflect.MapOf(t.Key(), et)
+		}
+	}
+
+	return t
+}
+
+// sampleElemType — конкретный тип значения (интерфейс и указатель разворачиваются).
+func sampleElemType(val reflect.Value) reflect.Type {
+	if !val.IsValid() {
+		return nil
+	}
+	if val.Kind() == reflect.Interface {
+		if val.IsNil() {
+			return nil
+		}
+		val = val.Elem()
+	}
+	for val.Kind() == reflect.Pointer {
+		val = val.Elem()
+	}
+	if !val.IsValid() || isEmptyInterface(val.Type()) {
+		return nil
+	}
+	return val.Type()
+}
+
+func isEmptyInterface(t reflect.Type) bool {
+	return t != nil && t.Kind() == reflect.Interface && t.NumMethod() == 0
 }
 
 func firstValue(samples []any) reflect.Value {
