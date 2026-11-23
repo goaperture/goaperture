@@ -19,7 +19,7 @@ func Handle[I Input, O Output](route *Route[I, O]) Switch {
 
 			return nil
 		},
-		PrepareCall: func(token string, reg *tstree.Registry) collector.RouteDump {
+		PrepareCall: func(token string, reg *tstree.Registry, types Types) collector.RouteDump {
 			ctx := client.WithToken(context.TODO(), token)
 
 			var cll = collector.Collector[I, O]{
@@ -29,7 +29,9 @@ func Handle[I Input, O Output](route *Route[I, O]) Switch {
 
 			route.Prepare(&cll)
 
-			return cll.GetDumpWithTypes(reg, route.Types.Input, route.Types.Output)
+			// types из getDocs (там GetWithDefault уже применил дефолты);
+			// route.Types читать нельзя: для range-копии замыкание не увидит заполнение
+			return cll.GetDumpWithTypes(reg, types.Input, types.Output)
 		},
 		PrivateAccess:     route.PrivateAccess,
 		Description:       route.Description,

@@ -8,7 +8,7 @@ import (
 type Switch struct {
 	Handler           ConfigHandler
 	DirectCall        func(input any) any
-	PrepareCall       func(token string, reg *tstree.Registry) collector.RouteDump
+	PrepareCall       func(token string, reg *tstree.Registry, types Types) collector.RouteDump
 	PrivateAccess     bool
 	AccessDescription string
 	// Description — описание эндпоинта.

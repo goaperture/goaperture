@@ -94,10 +94,12 @@ func getDocs(routes Routes, ws *aperture.WebSockets, accessPrefix string, devTok
 
 		alias, _ := getAlias(path)
 
-		// дефолтные имена ДО PrepareCall: tstree резервирует их в реестре корней
-		route.Types.GetWithDefault(alias)
+		// дефолтные имена ДО PrepareCall: tstree резервирует их в реестре корней.
+		// route — копия из range, поэтому мутируем её и передаём явно:
+		// замыкание PrepareCall захватывает оригинал и не увидит мутацию
+		types := route.Types.GetWithDefault(alias)
 
-		dump := route.PrepareCall(devToken, reg)
+		dump := route.PrepareCall(devToken, reg, types)
 
 		var accessKey string
 		var accessDescription string
@@ -127,7 +129,7 @@ func getDocs(routes Routes, ws *aperture.WebSockets, accessPrefix string, devTok
 			AccessKeyDescription: accessDescription,
 			Method:               method,
 			WithPagination:       dump.WithPagination,
-			Types:                route.Types,
+			Types:                types,
 		})
 	}
 
