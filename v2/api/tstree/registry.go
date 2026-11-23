@@ -84,11 +84,11 @@ func (r *Registry) uniqueName(name string) string {
 
 // sanitizeName приводит имя Go-типа к валидному TS-идентификатору:
 // инстанцированные дженерики ("Group[*app/ent.LeadTime]") и прочий мусор
-// (скобки, точки, звёздочки) вырезаются.
+// (скобки, точки, звёздочки) вырезаются. $ разрешён — валиден в TS.
 func sanitizeName(name string) string {
 	var b strings.Builder
 	for _, c := range name {
-		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' {
+		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '$' {
 			b.WriteRune(c)
 		}
 	}

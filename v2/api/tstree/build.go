@@ -69,6 +69,7 @@ func (w *walker) rootNode(name string, t reflect.Type, samples []any) Node {
 	switch t.Kind() {
 	case reflect.Struct:
 		node = &Node{Kind: KindObject, Props: map[string]Node{}, Optional: map[string]bool{}}
+		defer w.pushPath(name)() // путь анонимных типов начинается с имени корня
 		w.fillProps(node, t, firstValue(samples))
 	case reflect.Map:
 		item := w.typeof(t.Elem(), reflect.Value{})

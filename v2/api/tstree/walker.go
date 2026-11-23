@@ -10,12 +10,18 @@ import (
 // walker обходит Go-типы и строит Node'ы, регистрируя именованные в реестре.
 type walker struct {
 	reg      *Registry
-	path     []string // путь для имён анонимных типов
+	path     []string // путь полей: для имён анонимных типов (RootInput$user.address)
 	depth    int
 	maxDepth int
 }
 
 const maxDepth = 32 // защита от циклов в аномалиях; самоссылки через byType не растут
+
+// pushPath/popPath — контекст пути при обходе полей.
+func (w *walker) pushPath(part string) func() {
+	w.path = append(w.path, part)
+	return func() { w.path = w.path[:len(w.path)-1] }
+}
 
 // Value строит узел по живому значению (пример из коллектора).
 func (w *walker) Value(v any) Node {
@@ -129,17 +135,8 @@ func (w *walker) fillProps(node *Node, t reflect.Type, val reflect.Value) {
 			continue
 		}
 
-		// unexported поля json не сериализует — пропускаем
-		if f.PkgPath != "" && !f.Anonymous {
-			continue
-		}
-
 		tag := f.Tag.Get("json")
 		if tag == "-" {
-			continue
-		}
-		// пользовательский фильтр (например, системные поля ent)
-		if w.reg.SkipField != nil && w.reg.SkipField(t, f) {
 			continue
 		}
 		// пользовательский фильтр (например, системные поля ent)
@@ -157,7 +154,10 @@ func (w *walker) fillProps(node *Node, t reflect.Type, val reflect.Value) {
 			fv = val.Field(i)
 		}
 
+		w.pushPath(name)
 		child := w.typeof(f.Type, fv)
+		w.path = w.path[:len(w.path)-1] // popPath (не defer: цикл)
+
 		// поле-указатель или omitempty -> optional
 		if f.Type.Kind() == reflect.Pointer || omit {
 			node.Optional[name] = true
@@ -178,12 +178,32 @@ func (w *walker) anonName() string {
 	return fmt.Sprintf("Anon%d", w.reg.anon)
 }
 
-// typeName возвращает имя Go-типа или сгенерированное для анонимных.
+// anonPathName — осмысленное имя анонимного типа из пути полей:
+// поле "user.address" при корне "UsersListInput" -> "UsersListInput$user$address".
+// $ — валидный символ TS-идентификатора, отличает сгенерированные имена.
+func (w *walker) anonPathName() string {
+	if len(w.path) == 0 {
+		return w.anonName() // нет пути — fallback на AnonN
+	}
+	prefix := sanitizeName(w.path[0])
+	if prefix == "" {
+		prefix = "Anon"
+	}
+	parts := []string{prefix}
+	for _, p := range w.path[1:] {
+		if s := sanitizeName(p); s != "" {
+			parts = append(parts, s)
+		}
+	}
+	return strings.Join(parts, "$")
+}
+
+// typeName возвращает имя Go-типа или сгенерированное из пути полей для анонимных.
 func typeName(t reflect.Type, w *walker) string {
 	if name := t.Name(); name != "" {
 		return name
 	}
-	return w.anonName()
+	return w.anonPathName()
 }
 
 //
