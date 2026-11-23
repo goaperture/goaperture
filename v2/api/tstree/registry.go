@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strings"
 )
 
 // Registry — реестр именованных типов на весь дамп.
@@ -14,6 +15,10 @@ type Registry struct {
 	byType map[reflect.Type]*Named
 	byName map[string]*Named
 	anon   int
+
+	// SkipField — опциональный хук: вернуть true, чтобы исключить поле
+	// из дерева (например, системные поля ent). t — тип-владелец, f — поле.
+	SkipField func(t reflect.Type, f reflect.StructField) bool
 }
 
 // Root — входная точка одного роута: input или output.
@@ -60,6 +65,11 @@ func (r *Registry) Named() []Named {
 }
 
 func (r *Registry) uniqueName(name string) string {
+	name = sanitizeName(name)
+	if name == "" {
+		r.anon++
+		name = fmt.Sprintf("Anon%d", r.anon)
+	}
 	if _, taken := r.byName[name]; !taken {
 		return name
 	}
@@ -70,6 +80,19 @@ func (r *Registry) uniqueName(name string) string {
 			return name
 		}
 	}
+}
+
+// sanitizeName приводит имя Go-типа к валидному TS-идентификатору:
+// инстанцированные дженерики ("Group[*app/ent.LeadTime]") и прочий мусор
+// (скобки, точки, звёздочки) вырезаются.
+func sanitizeName(name string) string {
+	var b strings.Builder
+	for _, c := range name {
+		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' {
+			b.WriteRune(c)
+		}
+	}
+	return b.String()
 }
 
 // RouteScope — регистратор одного роута.

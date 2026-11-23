@@ -43,6 +43,22 @@ func (w *walker) typeof(t reflect.Type, val reflect.Value) Node {
 		t = t.Elem()
 	}
 
+	// uuid.UUID и совместимые: [16]byte под капотом, на фронте ждём строку
+	switch t.PkgPath() {
+	case "github.com/google/uuid":
+		if t.Name() == "UUID" {
+			return Node{Kind: KindPrimitive, Type: "string", Docs: "uuid"}
+		}
+	}
+
+	// uuid.UUID и совместимые: [16]byte под капотом, на фронте ждём строку
+	switch t.PkgPath() {
+	case "github.com/google/uuid":
+		if t.Name() == "UUID" {
+			return Node{Kind: KindPrimitive, Type: "string", Docs: "uuid"}
+		}
+	}
+
 	switch t.Kind() {
 	case reflect.Struct:
 		return w.structNode(t, val)
@@ -108,8 +124,26 @@ func (w *walker) fillProps(node *Node, t reflect.Type, val reflect.Value) {
 			continue
 		}
 
+		// unexported поля json не сериализует — пропускаем
+		if f.PkgPath != "" && !f.Anonymous {
+			continue
+		}
+
+		// unexported поля json не сериализует — пропускаем
+		if f.PkgPath != "" && !f.Anonymous {
+			continue
+		}
+
 		tag := f.Tag.Get("json")
 		if tag == "-" {
+			continue
+		}
+		// пользовательский фильтр (например, системные поля ent)
+		if w.reg.SkipField != nil && w.reg.SkipField(t, f) {
+			continue
+		}
+		// пользовательский фильтр (например, системные поля ent)
+		if w.reg.SkipField != nil && w.reg.SkipField(t, f) {
 			continue
 		}
 		name := strings.Split(tag, ",")[0]
