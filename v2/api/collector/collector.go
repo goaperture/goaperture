@@ -3,8 +3,10 @@ package collector
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/goaperture/goaperture/v2/api/client"
+	"github.com/goaperture/goaperture/v2/api/tstree"
 )
 
 type Collector[I any, O any] struct {
@@ -65,6 +67,7 @@ type RouteDump struct {
 	Outputs        []any
 	Errors         []string
 	WithPagination bool
+	TS             *tstree.Result
 }
 
 func (c *Collector[I, O]) GetDump() RouteDump {
@@ -76,6 +79,30 @@ func (c *Collector[I, O]) GetDump() RouteDump {
 		Errors:         c.Errors,
 		WithPagination: c.WithPagination,
 	}
+}
+
+// GetDumpWithTypes — как GetDump, плюс дерево TS-типов.
+// reg общий на весь дамп — дедупликация типов сквозная по всем роутам.
+func (c *Collector[I, O]) GetDumpWithTypes(reg *tstree.Registry, inputName, outputName string) RouteDump {
+	dump := c.GetDump()
+	if reg == nil {
+		return dump
+	}
+
+	res := tstree.Build(
+		reg, inputName, outputName,
+		typeOf[I](), typeOf[O](),
+		convertToAny(c.Inputs), convertToAny(c.Outputs),
+	)
+	dump.TS = &res
+
+	return dump
+}
+
+// typeOf возвращает reflect.Type дженерик-параметра
+// (для interface{} вернёт сам интерфейс — Build возьмёт тип из сэмплов).
+func typeOf[T any]() reflect.Type {
+	return reflect.TypeOf((*T)(nil)).Elem()
 }
 
 func convertToAny[T any](input []T) []any {

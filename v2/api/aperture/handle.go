@@ -5,6 +5,7 @@ import (
 
 	"github.com/goaperture/goaperture/v2/api/client"
 	"github.com/goaperture/goaperture/v2/api/collector"
+	"github.com/goaperture/goaperture/v2/api/tstree"
 )
 
 func Handle[I Input, O Output](route *Route[I, O]) Switch {
@@ -18,7 +19,7 @@ func Handle[I Input, O Output](route *Route[I, O]) Switch {
 
 			return nil
 		},
-		PrepareCall: func(token string) collector.RouteDump {
+		PrepareCall: func(token string, reg *tstree.Registry) collector.RouteDump {
 			ctx := client.WithToken(context.TODO(), token)
 
 			var cll = collector.Collector[I, O]{
@@ -28,7 +29,7 @@ func Handle[I Input, O Output](route *Route[I, O]) Switch {
 
 			route.Prepare(&cll)
 
-			return cll.GetDump()
+			return cll.GetDumpWithTypes(reg, route.Types.Input, route.Types.Output)
 		},
 		PrivateAccess:     route.PrivateAccess,
 		Description:       route.Description,

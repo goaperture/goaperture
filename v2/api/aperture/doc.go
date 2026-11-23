@@ -8,6 +8,7 @@ import (
 	"github.com/goaperture/goaperture/v2/api/auth"
 	"github.com/goaperture/goaperture/v2/api/auth/auth_paths"
 	"github.com/goaperture/goaperture/v2/api/params"
+	"github.com/goaperture/goaperture/v2/api/tstree"
 	"github.com/goaperture/goaperture/v2/exception"
 	"github.com/goaperture/goaperture/v2/response"
 	"github.com/goaperture/goaperture/v2/ws/aperture"
@@ -26,12 +27,14 @@ type DocOutput struct {
 	TopicDocs            map[string]any `json:"topics,omitempty"`
 	WithPagination       bool           `json:"pagination,omitempty"`
 	Types                Types          `json:"types,omitempty"`
+	TS                   *tstree.Result `json:"ts,omitempty"`
 }
 
 type DocResult struct {
-	Schema  []DocOutput `json:"schema"`
-	Version int         `json:"version"`
-	Token   string      `json:"token,omitempty"`
+	Schema  []DocOutput    `json:"schema"`
+	Version int            `json:"version"`
+	Token   string         `json:"token,omitempty"`
+	Named   []tstree.Named `json:"named,omitempty"`
 }
 
 type DocInput struct {
@@ -56,7 +59,9 @@ func docHandle[P Payload](api *Api[P]) RouteHandler {
 			return
 		}
 
-		schema := getDocs(api.routes, api.ws, api.AccessPrefix, api.Auth.GetDevToken())
+		reg := tstree.NewRegistry()
+
+		schema := getDocs(api.routes, api.ws, api.AccessPrefix, api.Auth.GetDevToken(), reg)
 
 		if api.Auth.Login != nil {
 			schema = append(schema, getAuthDocs()...)
@@ -67,7 +72,7 @@ func docHandle[P Payload](api *Api[P]) RouteHandler {
 		token := api.Auth.GetDevToken()
 
 		if input.Version == 2 {
-			json.NewEncoder(w).Encode(convertToV2(&schema, token))
+			json.NewEncoder(w).Encode(convertToV2(&schema, token, reg))
 			return
 		}
 
@@ -75,17 +80,18 @@ func docHandle[P Payload](api *Api[P]) RouteHandler {
 			Schema:  schema,
 			Version: 3,
 			Token:   token,
+			Named:   reg.Named(),
 		})
 	}
 }
 
-func getDocs(routes Routes, ws *aperture.WebSockets, accessPrefix string, devToken string) []DocOutput {
+func getDocs(routes Routes, ws *aperture.WebSockets, accessPrefix string, devToken string, reg *tstree.Registry) []DocOutput {
 	var result = []DocOutput{}
 
 	fmt.Println("DOC: ")
 	for path, route := range routes {
 		fmt.Println("\t", route.Description)
-		dump := route.PrepareCall(devToken)
+		dump := route.PrepareCall(devToken, reg)
 
 		var accessKey string
 		var accessDescription string
@@ -108,6 +114,7 @@ func getDocs(routes Routes, ws *aperture.WebSockets, accessPrefix string, devTok
 			Input:  dump.Inputs,
 			Output: dump.Outputs,
 			Errors: dump.Errors,
+			TS:     dump.TS,
 
 			// Description — описание эндпоинта.
 			// Укажите целевое действие в инфинитиве (например: получить..., создать..., обновить...).

@@ -2,6 +2,8 @@ package aperture
 
 import (
 	"strings"
+
+	"github.com/goaperture/goaperture/v2/api/tstree"
 )
 
 type DocOutputV2 struct {
@@ -19,15 +21,17 @@ type DocOutputV2 struct {
 	Topics                map[string]any `json:"topics,omitempty"`
 	Permission            string         `json:"permission,omitempty"`
 	PermissionDescription string         `json:"permission_description,omitempty"`
+	TS                    *tstree.Result `json:"ts,omitempty"`
 }
 
 type DocResultV2 struct {
-	Schema  []DocOutputV2 `json:"schema"`
-	Version int           `json:"version"`
-	Token   string        `json:"token,omitempty"`
+	Schema  []DocOutputV2  `json:"schema"`
+	Version int            `json:"version"`
+	Token   string         `json:"token,omitempty"`
+	Named   []tstree.Named `json:"named,omitempty"`
 }
 
-func convertToV2(doc *[]DocOutput, token string) DocResultV2 {
+func convertToV2(doc *[]DocOutput, token string, reg *tstree.Registry) DocResultV2 {
 	schema := []DocOutputV2{}
 
 	for _, route := range *doc {
@@ -66,6 +70,7 @@ func convertToV2(doc *[]DocOutput, token string) DocResultV2 {
 			Exceptions:  route.Errors,
 			Description: route.Description,
 			Topics:      route.TopicDocs,
+			TS:          route.TS,
 
 			Permission:            route.AccessKey,
 			PermissionDescription: route.AccessKeyDescription,
@@ -76,6 +81,7 @@ func convertToV2(doc *[]DocOutput, token string) DocResultV2 {
 		Schema:  schema,
 		Version: 2,
 		Token:   token,
+		Named:   reg.Named(),
 	}
 }
 
