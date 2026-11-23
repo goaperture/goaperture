@@ -1,6 +1,7 @@
 package tstree
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"sort"
@@ -53,10 +54,13 @@ func (r *Registry) Declare(roots []Root) *RouteScope {
 }
 
 // Named возвращает все именованные типы (заполненные), отсортированные по имени.
+// Узлы канонизируются: props и union-варианты сортируются, чтобы результат
+// не зависел от случайного порядка обхода map и сэмплов.
 func (r *Registry) Named() []Named {
 	out := make([]Named, 0, len(r.byName))
 	for _, n := range r.byName {
 		if n.Node != nil {
+			canonNode(n.Node, map[*Node]bool{})
 			out = append(out, *n)
 		}
 	}
@@ -120,4 +124,77 @@ type RouteScope struct {
 // Roots возвращает корни роута (узлы заполняются при обходе).
 func (s *RouteScope) Roots() []Root {
 	return s.roots
+}
+
+// canonNode канонизирует узел: сортирует props и union-варианты.
+// Рекурсивно, с защитой от циклов (visited — узлы уже в обработке).
+func canonNode(n *Node, visited map[*Node]bool) {
+	if n == nil || visited[n] {
+		return
+	}
+	visited[n] = true
+	defer delete(visited, n)
+
+	switch n.Kind {
+	case KindObject:
+		keys := make([]string, 0, len(n.Props))
+		for k := range n.Props {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			pn := n.Props[k]
+			canonNode(&pn, visited)
+			n.Props[k] = pn
+		}
+		// обязательность по счётчикам примеров: ключ обязателен, только если
+		// есть во ВСЕХ слитых примерах (и примеров было больше одного).
+		// Один пример = всё обязательно (счётчиков нет — данные не делились)
+		if n.meta != nil && n.meta.total > 1 {
+			for _, k := range keys {
+				if n.meta.counts[k] < n.meta.total {
+					if n.Optional == nil {
+						n.Optional = map[string]bool{}
+					}
+					n.Optional[k] = true
+				}
+			}
+		}
+	case KindArray, KindMap:
+		if n.Item != nil {
+			canonNode(n.Item, visited)
+		}
+	case KindUnion:
+		for i := range n.Of {
+			canonNode(&n.Of[i], visited)
+		}
+		// канонический ключ узла: строковое представление для стабильной сортировки
+		sort.Slice(n.Of, func(i, j int) bool {
+			return unionKey(n.Of[i]) < unionKey(n.Of[j])
+		})
+	}
+}
+
+// unionKey — каноническое строковое представление узла для сортировки union.
+func unionKey(n Node) string {
+	b, _ := json.Marshal(n)
+	return string(b)
+}
+
+// WrapName выносит инлайн-узел (union, RawJSON-объект и т.п.) в именованный
+// тип (структурный тег `ts:"..."` на не-структурном поле). При повторной
+// встрече с тем же тегом узлы мержатся — варианты union сохраняются.
+func (r *Registry) WrapName(node Node, name string) Node {
+	named, ok := r.byName[name]
+	if !ok {
+		named = &Named{Name: name, Node: &node}
+		r.byName[name] = named
+		return Node{Kind: KindRef, Name: name}
+	}
+	// уже есть: мержим (например, другой сэмпл добавил вариант в union)
+	if named.Node != nil {
+		m := mergeProp(*named.Node, node)
+		named.Node = &m
+	}
+	return Node{Kind: KindRef, Name: name}
 }

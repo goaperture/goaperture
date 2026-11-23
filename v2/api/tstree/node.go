@@ -11,16 +11,27 @@
 // getDocs и передавайте во все роуты, тогда унификация имён сквозная.
 package tstree
 
+// nodeMeta — служебные счётчики слияния живых JSON-примеров (RawMessage и
+// инлайн-данные). Не сериализуются: по ним canonNode помечает optional'ами
+// ключи, отсутствующие в части примеров (обязательное = есть во всех).
+// Указатель — чтобы счётчики жили сквозь копии Node (merge по значению).
+type nodeMeta struct {
+	counts map[string]int // сколько примеров содержат ключ
+	total  int            // сколько примеров слилось в узел
+}
+
 // Node — элемент дерева типов.
 type Node struct {
 	Kind     Kind            `json:"kind,omitempty"`
-	Name     string          `json:"name,omitempty"`     // для KindRef: имя интерфейса; для KindMap: имя типа ключа
-	Type     string          `json:"type,omitempty"`     // для KindPrimitive: "string" | "number" | "boolean" | "any" | "Date"
-	Props    map[string]Node `json:"props,omitempty"`    // для KindObject: поля
-	Optional map[string]bool `json:"optional,omitempty"` // какие поля объекта опциональны
-	Item     *Node           `json:"item,omitempty"`     // для KindArray / KindMap: тип элемента/значения
-	Of       []Node          `json:"of,omitempty"`       // для KindUnion / KindEnum: варианты
-	Docs     string          `json:"docs,omitempty"`     // комментарий-описание
+	Name     string          `json:"name,omitempty"`
+	Type     string          `json:"type,omitempty"`
+	Props    map[string]Node `json:"props,omitempty"`
+	Optional map[string]bool `json:"optional,omitempty"`
+	Item     *Node           `json:"item,omitempty"`
+	Of       []Node          `json:"of,omitempty"`
+	Docs     string          `json:"docs,omitempty"`
+
+	meta *nodeMeta `json:"-"`
 }
 
 // Kind — вид узла дерева.
@@ -35,3 +46,8 @@ const (
 	KindPrimitive Kind = "primitive" // Type: string | number | boolean | any | Date
 	KindEnum      Kind = "enum"      // набор строк в Of, на фронте -> string-union
 )
+
+// newMeta — счётчики примеров для слияния живых JSON-данных.
+func newMeta() *nodeMeta {
+	return &nodeMeta{counts: map[string]int{}}
+}

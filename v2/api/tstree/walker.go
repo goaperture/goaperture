@@ -4,16 +4,88 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 	"time"
 )
+
+// mergeProp совмещает два узла одного поля при повторном обходе с другим
+// живым примером: объекты мержатся, разные формы (объект vs массив) — union.
+func mergeProp(prev, child Node) Node {
+	// примитив any уступает конкретике: тип мог заполняться без живого примера
+	// (RawMessage пуст / другой роут обошёл раньше) — порядок обхода роутов
+	// случаен (map), поэтому any и конкретика должны стабильно сливаться
+	if prev.Kind == KindPrimitive && prev.Type == "any" && child.Kind != KindPrimitive {
+		return child
+	}
+	if child.Kind == KindPrimitive && child.Type == "any" {
+		return prev // конкретика важнее any
+	}
+	// union растёт вариантами
+	if prev.Kind == KindUnion {
+		for i := range prev.Of {
+			if prev.Of[i].Kind == child.Kind {
+				prev.Of[i] = mergeProp(prev.Of[i], child)
+				return prev
+			}
+		}
+		prev.Of = append(prev.Of, child)
+		return prev
+	}
+	// объект+объект: объединяем ключи (разные формы RawJSON — всё равно один интерфейс)
+	if prev.Kind == KindObject && child.Kind == KindObject {
+		mergeNode(&prev, &child)
+		// счётчики: total суммируется, counts ключей child прибавляются
+		if prev.meta == nil {
+			prev.meta = newMeta()
+		}
+		if child.meta != nil {
+			for k, c := range child.meta.counts {
+				prev.meta.counts[k] += c
+			}
+		}
+		prev.meta.total += child.metaTotal()
+		return prev
+	}
+	// массив+массив: мерж элементы
+	if prev.Kind == KindArray && child.Kind == KindArray {
+		if child.Item != nil {
+			if prev.Item == nil {
+				prev.Item = child.Item
+			} else {
+				m := mergeProp(*prev.Item, *child.Item)
+				prev.Item = &m
+			}
+		}
+		return prev
+	}
+	// разные формы (объект vs массив) -> union
+	if (prev.Kind == KindObject || prev.Kind == KindArray) && (child.Kind == KindObject || child.Kind == KindArray) {
+		return Node{Kind: KindUnion, Of: []Node{prev, child}}
+	}
+	// ref/примитивы не трогаем: дедупликация по типу сама
+	return prev
+}
+
+// fillingGuard выполняет fn с защитой от рекурсии самоссылающихся типов.
+func (w *walker) fillingGuard(t reflect.Type, fn func()) {
+	if w.filling == nil {
+		w.filling = map[reflect.Type]bool{}
+	}
+	if w.filling[t] {
+		return // уже заполняется выше по стеку — рекурсия
+	}
+	w.filling[t] = true
+	defer delete(w.filling, t)
+	fn()
+}
 
 // walker обходит Go-типы и строит Node'ы, регистрируя именованные в реестре.
 type walker struct {
 	reg      *Registry
 	path     []string // путь полей: для имён анонимных типов (RootInput$user.address)
 	depth    int
-	maxDepth int
+	filling  map[reflect.Type]bool // защита от рекурсии самоссылающихся типов
 }
 
 const maxDepth = 32 // защита от циклов в аномалиях; самоссылки через byType не растут
@@ -22,6 +94,107 @@ const maxDepth = 32 // защита от циклов в аномалиях; с�
 func (w *walker) pushPath(part string) func() {
 	w.path = append(w.path, part)
 	return func() { w.path = w.path[:len(w.path)-1] }
+}
+
+// mergeNode мержит объект-поля и элементы массива при повторном обходе типа
+// с другим живым примером (разные cl.Execute наполняют разные ключи).
+func mergeNode(dst, src *Node) {
+	switch dst.Kind {
+	case KindObject:
+		if src.Kind != KindObject {
+			return
+		}
+		for k, v := range src.Props {
+			if prev, ok := dst.Props[k]; ok {
+				dst.Props[k] = mergeProp(prev, v)
+				continue
+			}
+			dst.Props[k] = v
+		}
+		// счётчики примеров: total суммируется, counts прибавляются
+		if dst.meta == nil {
+			dst.meta = newMeta()
+		}
+		dst.meta.total += src.metaTotal()
+		if src.meta != nil {
+			for k, c := range src.meta.counts {
+				dst.meta.counts[k] += c
+			}
+		}
+	case KindArray:
+		if src.Kind != KindArray || src.Item == nil {
+			return
+		}
+		if dst.Item == nil {
+			dst.Item = src.Item
+			return
+		}
+		if dst.Item.Kind == src.Item.Kind && (src.Item.Kind == KindObject || src.Item.Kind == KindArray) {
+			mergeNode(dst.Item, src.Item)
+		}
+	}
+}
+
+// metaTotal — число примеров, слитых в узел (0 если меты нет).
+func (n *Node) metaTotal() int {
+	if n.meta == nil {
+		return 0
+	}
+	return n.meta.total
+}
+
+// rawJSONNode декодирует живой пример json.RawMessage и строит узел
+// из реальных данных: объект -> props по ключам, массив -> массив, скаляры.
+func (w *walker) rawJSONNode(val reflect.Value) (Node, bool) {
+	if !val.IsValid() || val.Kind() != reflect.Slice || val.Len() == 0 {
+		return Node{}, false
+	}
+	var decoded any
+	if err := json.Unmarshal(val.Bytes(), &decoded); err != nil {
+		return Node{}, false
+	}
+	n := decodedNode(decoded, w)
+	if n.Kind == "" {
+		return Node{}, false
+	}
+	return n, true
+}
+
+// decodedNode строит узел из декодированного JSON (map/slice/скаляры).
+func decodedNode(v any, w *walker) Node {
+	switch tv := v.(type) {
+	case nil:
+		return Node{Kind: KindPrimitive, Type: "any"}
+	case map[string]any:
+		node := Node{Kind: KindObject, Props: map[string]Node{}, meta: newMeta()}
+		keys := make([]string, 0, len(tv))
+		for k := range tv {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			w.pushPath(k)
+			node.Props[k] = decodedNode(tv[k], w)
+			w.path = w.path[:len(w.path)-1]
+			node.meta.counts[k] = 1 // ключ присутствует в этом примере
+		}
+		node.meta.total = 1
+		return node
+	case []any:
+		item := Node{Kind: KindPrimitive, Type: "any"}
+		if len(tv) > 0 {
+			item = decodedNode(tv[0], w)
+		}
+		return Node{Kind: KindArray, Item: &item}
+	case string:
+		return Node{Kind: KindPrimitive, Type: "string"}
+	case float64:
+		return Node{Kind: KindPrimitive, Type: "number"}
+	case bool:
+		return Node{Kind: KindPrimitive, Type: "boolean"}
+	default:
+		return Node{Kind: KindPrimitive, Type: "any"}
+	}
 }
 
 // Value строит узел по живому значению (пример из коллектора).
@@ -50,7 +223,7 @@ func (w *walker) typeof(t reflect.Type, val reflect.Value) Node {
 		t = t.Elem()
 	}
 
-	// uuid.UUID и совместимые: [16]byte под капотом, на фронте ждём строку
+	// uuid.UUID: [16]byte под капотом, на фронте ждём строку
 	switch t.PkgPath() {
 	case "github.com/google/uuid":
 		if t.Name() == "UUID" {
@@ -58,16 +231,12 @@ func (w *walker) typeof(t reflect.Type, val reflect.Value) Node {
 		}
 	}
 
-	// uuid.UUID и совместимые: [16]byte под капотом, на фронте ждём строку
-	switch t.PkgPath() {
-	case "github.com/google/uuid":
-		if t.Name() == "UUID" {
-			return Node{Kind: KindPrimitive, Type: "string", Docs: "uuid"}
-		}
-	}
-
-	// json.RawMessage — сырой JSON: на фронте это any (см. Docs для уточнения).
+	// json.RawMessage — сырой JSON: если есть живой пример, декодируем
+	// и обходим как обычные данные (реальные ключи попадут в типы).
 	if t == rawMessageType {
+		if n, ok := w.rawJSONNode(val); ok {
+			return n
+		}
 		return Node{Kind: KindPrimitive, Type: "any", Docs: "raw JSON"}
 	}
 
@@ -120,10 +289,22 @@ func (w *walker) structNode(t reflect.Type, val reflect.Value) Node {
 		w.reg.byName[named.Name] = named
 	}
 
-	if named.Node == nil {
-		node := &Node{Kind: KindObject, Props: map[string]Node{}, Optional: map[string]bool{}}
-		named.Node = node
-		w.fillProps(node, t, val)
+	if named.Node == nil || !w.filling[t] {
+		// тип либо ещё не заполнялся, либо заполнялся по другому сэмплу —
+		// повторно проходим и мержим новые ключи из текущего живого примера
+		if w.filling == nil {
+			w.filling = map[reflect.Type]bool{}
+		}
+		if w.filling[t] {
+			return Node{Kind: KindRef, Name: named.Name} // рекурсия самоссылки
+		}
+		w.filling[t] = true
+		defer delete(w.filling, t)
+
+		if named.Node == nil {
+			named.Node = &Node{Kind: KindObject, Props: map[string]Node{}, Optional: map[string]bool{}}
+		}
+		w.fillProps(named.Node, t, val)
 	}
 
 	return Node{Kind: KindRef, Name: named.Name}
@@ -168,9 +349,11 @@ func (w *walker) fillProps(node *Node, t reflect.Type, val reflect.Value) {
 			fv = val.Field(i)
 		}
 
-		// структурный тег `ts:"Name"` на поле — явное имя для вложенного типа:
-		// резервируем ДО обхода, чтобы structNode взял имя из реестра
-		if tagOverride := f.Tag.Get("ts"); tagOverride != "" {
+		tagOverride := f.Tag.Get("ts")
+		// тег `ts:"Name"` на поле-структуру — резервируем ДО обхода, чтобы
+		// structNode взял имя из реестра. Для инлайн-узлов (RawMessage и др.)
+		// имя назначаем после обхода — дедупликации по типу там нет.
+		if tagOverride != "" && f.Type.Kind() == reflect.Struct {
 			w.reg.ReserveName(f.Type, tagOverride)
 		}
 
@@ -182,10 +365,22 @@ func (w *walker) fillProps(node *Node, t reflect.Type, val reflect.Value) {
 		if f.Type.Kind() == reflect.Pointer || omit {
 			node.Optional[name] = true
 		}
-		node.Props[name] = child
+
+		// RawMessage без примера уже развёрнут по живым данным;
+		// при нескольких сэмплах мержим или строим union (объект vs массив)
+		if tagOverride != "" && f.Type.Kind() != reflect.Struct {
+			// тег `ts:"Name"` на не-структурном поле (RawMessage и т.п.):
+			// инлайн-узел выносится в именованный тип, повторные сэмплы мержатся в него
+			node.Props[name] = w.reg.WrapName(child, tagOverride)
+		} else if prev, ok := node.Props[name]; ok {
+			node.Props[name] = mergeProp(prev, child)
+		} else {
+			node.Props[name] = child
+		}
 	}
 }
 
+// arrayNode — слайс/массив.
 func (w *walker) arrayNode(t reflect.Type, val reflect.Value) Node {
 	// слияние примеров нескольких элементов слайса: берём общий знаменатель.
 	// Для слайса структур elemType один и тот же -> один ref, этого достаточно.

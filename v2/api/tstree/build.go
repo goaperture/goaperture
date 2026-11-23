@@ -63,8 +63,19 @@ func (w *walker) rootNode(name string, t reflect.Type, samples []any) Node {
 	// элемента, иначе корень становится any[] (элемент-интерфейс без значения)
 	t = refineAnyWrapper(t, samples)
 
-	// именованный корень: регистрируем под зарезервированным именем
+	// именованный корень: если тип уже встречался — мержим текущие сэмплы
+	// в существующий узел (порядок роутов случаен, данные могут быть только здесь)
 	if named, ok := w.reg.byType[t]; ok {
+		if named.Node != nil && t.Kind() == reflect.Struct && len(samples) > 0 {
+			w.fillingGuard(t, func() {
+				for _, s := range samples {
+					if s == nil {
+						continue
+					}
+					w.fillProps(named.Node, t, reflect.ValueOf(s))
+				}
+			})
+		}
 		return Node{Kind: KindRef, Name: named.Name}
 	}
 
@@ -75,7 +86,13 @@ func (w *walker) rootNode(name string, t reflect.Type, samples []any) Node {
 	case reflect.Struct:
 		node = &Node{Kind: KindObject, Props: map[string]Node{}, Optional: map[string]bool{}}
 		defer w.pushPath(name)() // путь анонимных типов начинается с имени корня
-		w.fillProps(node, t, sample)
+		// мержим ВСЕ сэмплы: разные Execute могут наполнять разные части типа
+		for _, s := range samples {
+			if s == nil {
+				continue
+			}
+			w.fillProps(node, t, reflect.ValueOf(s))
+		}
 	case reflect.Map:
 		item := w.typeof(t.Elem(), mapValue(sample))
 		node = &Node{Kind: KindMap, Name: mapKeyName(t), Item: &item}
@@ -96,6 +113,9 @@ func (w *walker) rootNode(name string, t reflect.Type, samples []any) Node {
 
 	if named.Node == nil {
 		named.Node = node
+	} else {
+		// тип уже встречался: мержим построенный узел в существующий
+		mergeNode(named.Node, node)
 	}
 
 	return Node{Kind: KindRef, Name: named.Name}
