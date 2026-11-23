@@ -1,6 +1,7 @@
 package tstree
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
@@ -63,6 +64,16 @@ func (w *walker) typeof(t reflect.Type, val reflect.Value) Node {
 		if t.Name() == "UUID" {
 			return Node{Kind: KindPrimitive, Type: "string", Docs: "uuid"}
 		}
+	}
+
+	// json.RawMessage — сырой JSON: на фронте это any (см. Docs для уточнения).
+	if t == rawMessageType {
+		return Node{Kind: KindPrimitive, Type: "any", Docs: "raw JSON"}
+	}
+
+	// []byte/[]uint8 — base64-строка в JSON
+	if t.Kind() == reflect.Slice && t.Elem().Kind() == reflect.Uint8 {
+		return Node{Kind: KindArray, Item: &Node{Kind: KindPrimitive, Type: "number"}}
 	}
 
 	switch t.Kind() {
@@ -246,6 +257,7 @@ func mapKeyName(t reflect.Type) string {
 }
 
 var timeType = reflect.TypeOf(time.Time{})
+var rawMessageType = reflect.TypeOf(json.RawMessage{})
 
 // primitive — маппинг Go-примитивов на TS.
 func primitive(t reflect.Type, val reflect.Value) Node {
