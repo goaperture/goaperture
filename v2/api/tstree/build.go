@@ -65,8 +65,8 @@ func (w *walker) rootNode(name string, t reflect.Type, samples []any) Node {
 
 	// именованный корень: если тип уже встречался — мержим текущие сэмплы
 	// в существующий узел (порядок роутов случаен, данные могут быть только здесь)
-	if named, ok := w.reg.byType[t]; ok {
-		if named.Node != nil && t.Kind() == reflect.Struct && len(samples) > 0 {
+	if named, ok := w.reg.byType[t]; ok && named.Node != nil {
+		if t.Kind() == reflect.Struct && len(samples) > 0 {
 			w.fillingGuard(t, func() {
 				for _, s := range samples {
 					if s == nil {
@@ -75,6 +75,12 @@ func (w *walker) rootNode(name string, t reflect.Type, samples []any) Node {
 					w.fillProps(named.Node, t, reflect.ValueOf(s))
 				}
 			})
+		}
+		// пустышка-корень (зарезервирована в Declare) получает alias-узел на
+		// реальный тип: имя Types.Output обязано существовать на фронте,
+		// даже если тип уже зарегистрирован другим роутом под другим именем
+		if root := w.reg.byName[name]; root != nil && root.Node == nil && named.Name != name {
+			root.Node = &Node{Kind: KindRef, Name: named.Name}
 		}
 		return Node{Kind: KindRef, Name: named.Name}
 	}
@@ -86,13 +92,21 @@ func (w *walker) rootNode(name string, t reflect.Type, samples []any) Node {
 	case reflect.Struct:
 		node = &Node{Kind: KindObject, Props: map[string]Node{}, Optional: map[string]bool{}}
 		defer w.pushPath(name)() // путь анонимных типов начинается с имени корня
-		// мержим ВСЕ сэмплы: разные Execute могут наполнять разные части типа
-		for _, s := range samples {
-			if s == nil {
-				continue
+		// мержим ВСЕ сэмплы: разные Execute могут наполнять разные части типа.
+		// Без сэмплов тоже обходим (fillProps с невалидным val строит по типам)
+		w.fillingGuard(t, func() {
+			filled := false
+			for _, s := range samples {
+				if s == nil {
+					continue
+				}
+				filled = true
+				w.fillProps(node, t, reflect.ValueOf(s))
 			}
-			w.fillProps(node, t, reflect.ValueOf(s))
-		}
+			if !filled {
+				w.fillProps(node, t, reflect.Value{})
+			}
+		})
 	case reflect.Map:
 		item := w.typeof(t.Elem(), mapValue(sample))
 		node = &Node{Kind: KindMap, Name: mapKeyName(t), Item: &item}
